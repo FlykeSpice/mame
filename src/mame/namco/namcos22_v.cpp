@@ -26,12 +26,13 @@ void namcos22_renderer::init()
 }
 
 
-// poly scanline callbacks
+// poly scanline callback
 
 // differences between super and non-super
 // normal: per-poly fog, shading after fog, global fader (handled elsewhere), no alpha
 // super:  shading before fog, per-z fog, 2 faders, alpha, sprites in a separate callback
 
+template <bool SS22, bool Texture, bool Shade, bool ZFog, bool PolyFade>
 void namcos22_renderer::renderscanline_poly(int32_t scanline, const extent_t &extent, const namcos22_object_data &extra, int threadid)
 {
 	float z = extent.param[0].start;
@@ -44,91 +45,7 @@ void namcos22_renderer::renderscanline_poly(int32_t scanline, const extent_t &ex
 	float di = extent.param[3].dpdx;
 	const int bn = extra.bn * 0x1000;
 	const pen_t *pens = extra.pens;
-	const int fogfactor = 0xff - extra.fogfactor;
-	const bool shade_enabled = extra.shade_enabled;
-	const bool texture_enabled = extra.texture_enabled;
-	rgbaint_t fogcolor = extra.fogcolor;
-	const int prioverchar = extra.prioverchar;
-	int penmask = 0xff;
-	int penshift = 0;
-	int pen = 0;
-	rgbaint_t rgb;
-
-	u32 *const dest = &extra.destbase->pix(scanline);
-	u8 *const primap = &extra.primap->pix(scanline);
-	u16 *const ttmap = m_state.m_texture_tilemap;
-	u8 *const ttattr = m_state.m_texture_tileattr.get();
-	u8 *const ttdata = m_state.m_texture_tiledata;
-	u8 *const tt_ayx_to_pixel = m_state.m_texture_ayx_to_pixel.get();
-
-	if (extra.cmode & 4)
-	{
-		pens += 0xec + ((extra.cmode & 8) << 1);
-		penmask = 0x03;
-		penshift = 2 * (~extra.cmode & 3);
-	}
-	else if (extra.cmode & 2)
-	{
-		pens += 0xe0 + ((extra.cmode & 8) << 1);
-		penmask = 0x0f;
-		penshift = 4 * (~extra.cmode & 1);
-	}
-
-	for (int x = extent.startx; x < extent.stopx; x++)
-	{
-		const float ooz = 1.0f / z;
-
-		// texture mapping
-		if (texture_enabled)
-		{
-			const int tx = int(u * ooz) & 0xfff;
-			const int ty = (int(v * ooz) & 0xfff) | bn;
-			const int to = (ty << 4 & 0xfff00) | (tx >> 4);
-			pen = ttdata[(ttmap[to] << 8) | tt_ayx_to_pixel[(ttattr[to] << 8) | (ty << 4 & 0xf0) | (tx & 0xf)]];
-			rgb.set(pens[pen >> penshift & penmask]);
-		}
-		else
-			rgb.set(0, 0xff, 0xff, 0xff);
-
-		// poly fog
-		if (fogfactor != 0xff)
-		{
-			rgb.blend(fogcolor, fogfactor);
-		}
-
-		// shading after fog
-		if (shade_enabled)
-		{
-			const int shade = i * ooz;
-			rgb.scale_imm_and_clamp(shade << 2);
-		}
-
-		dest[x] = rgb.to_rgba();
-		primap[x] = (primap[x] & ~1) | prioverchar;
-
-		u += du;
-		v += dv;
-		i += di;
-		z += dz;
-	}
-}
-
-
-void namcos22_renderer::renderscanline_poly_ss22(int32_t scanline, const extent_t &extent, const namcos22_object_data &extra, int threadid)
-{
-	float z = extent.param[0].start;
-	float u = extent.param[1].start;
-	float v = extent.param[2].start;
-	float i = extent.param[3].start;
-	float dz = extent.param[0].dpdx;
-	float du = extent.param[1].dpdx;
-	float dv = extent.param[2].dpdx;
-	float di = extent.param[3].dpdx;
-	const int bn = extra.bn * 0x1000;
-	const pen_t *pens = extra.pens;
 	int fogfactor = 0xff - extra.fogfactor;
-	const bool shade_enabled = extra.shade_enabled;
-	const bool texture_enabled = extra.texture_enabled;
 	rgbaint_t fogcolor = extra.fogcolor;
 	const int prioverchar = extra.prioverchar;
 	int penmask = 0xff;
@@ -138,14 +55,12 @@ void namcos22_renderer::renderscanline_poly_ss22(int32_t scanline, const extent_
 
 	const u8 *czram = extra.czram;
 	const int cz_sdelta = extra.cz_sdelta;
-	const bool zfog_enabled = extra.zfog_enabled;
 	const int fadefactor = 0xff - extra.fadefactor;
+	rgbaint_t fadecolor = extra.fadecolor;
+	rgbaint_t polycolor = extra.polycolor;
 	const int alphafactor = 0xff - extra.alpha;
 	const bool alpha_enabled = extra.alpha_enabled;
 	const u8 alpha_pen = m_state.m_poly_alpha_pen;
-	const bool polyfade_enabled = extra.pfade_enabled;
-	rgbaint_t fadecolor = extra.fadecolor;
-	rgbaint_t polycolor = extra.polycolor;
 
 	u32 *const dest = &extra.destbase->pix(scanline);
 	u8 *const primap = &extra.primap->pix(scanline);
@@ -172,7 +87,7 @@ void namcos22_renderer::renderscanline_poly_ss22(int32_t scanline, const extent_
 		const float ooz = 1.0f / z;
 
 		// texture mapping
-		if (texture_enabled)
+		if (Texture)
 		{
 			const int tx = int(u * ooz) & 0xfff;
 			const int ty = (int(v * ooz) & 0xfff) | bn;
@@ -184,45 +99,48 @@ void namcos22_renderer::renderscanline_poly_ss22(int32_t scanline, const extent_
 			rgb.set(0, 0xff, 0xff, 0xff);
 
 		// shading before fog
-		if (shade_enabled)
+		if (Shade)
 		{
 			const int shade = i * ooz;
 			rgb.scale_imm_and_clamp(shade << 2);
 		}
 
-		// per-z fog
-		if (zfog_enabled)
+		if (SS22)
 		{
-			// discard low byte and clamp to 0-1fff
-			int cz = int(ooz) >> 8;
-			if (cz > 0x1fff) cz = 0x1fff;
-			fogfactor = czram[cz] + cz_sdelta;
-			if (fogfactor > 0)
+			// per-z fog
+			if (ZFog)
 			{
-				if (fogfactor > 0xff) fogfactor = 0xff;
-				rgb.blend(fogcolor, 0xff - fogfactor);
+				// discard low byte and clamp to 0-1fff
+				int cz = int(ooz) >> 8;
+				if (cz > 0x1fff) cz = 0x1fff;
+				fogfactor = czram[cz] + cz_sdelta;
+				if (fogfactor > 0)
+				{
+					if (fogfactor > 0xff) fogfactor = 0xff;
+					rgb.blend(fogcolor, 0xff - fogfactor);
+				}
 			}
-		}
-		else if (fogfactor != 0xff) // direct
-		{
-			rgb.blend(fogcolor, fogfactor);
-		}
+			else if (fogfactor != 0xff) // direct
+			{
+				rgb.blend(fogcolor, fogfactor);
+			}
 
-		// fade
-		if (polyfade_enabled)
-		{
-			rgb.scale_and_clamp(polycolor);
-		}
+			// fade
+			if (PolyFade)
+			{
+				rgb.scale_and_clamp(polycolor);
+			}
 
-		if (fadefactor != 0xff)
-		{
-			rgb.blend(fadecolor, fadefactor);
-		}
+			if (fadefactor != 0xff)
+			{
+				rgb.blend(fadecolor, fadefactor);
+			}
 
-		// alpha
-		if (alphafactor != 0xff && (alpha_enabled || pen == alpha_pen))
-		{
-			rgb.blend(rgbaint_t(dest[x]), alphafactor);
+			// alpha
+			if (alphafactor != 0xff && (alpha_enabled || pen == alpha_pen))
+			{
+				rgb.blend(rgbaint_t(dest[x]), alphafactor);
+			}
 		}
 
 		dest[x] = rgb.to_rgba();
@@ -352,14 +270,15 @@ void namcos22_renderer::poly3d_drawquad(screen_device &screen, bitmap_rgb32 &bit
 	const int cz_adjust = node->data.quad.cz_adjust;
 	const int objectflags = node->data.quad.objectflags;
 
+	bool pfade_enabled   = false;
+	bool zfog_enabled    = false;
+	bool shade_enabled   = true;
+	bool texture_enabled = true;
+
 	namcos22_object_data &extra = object_data().next();
 
 	extra.destbase = &bitmap;
-	extra.pfade_enabled = false;
-	extra.zfog_enabled = false;
 	extra.alpha_enabled = false;
-	extra.shade_enabled = true;
-	extra.texture_enabled = true;
 	extra.fadefactor = 0;
 	extra.fogfactor = 0;
 
@@ -380,7 +299,7 @@ void namcos22_renderer::poly3d_drawquad(screen_device &screen, bitmap_rgb32 &bit
 		}
 
 		// poly fade
-		extra.pfade_enabled = m_state.m_poly_fade_enabled;
+		pfade_enabled = m_state.m_poly_fade_enabled;
 		extra.polycolor.set(0, m_state.m_poly_fade_r, m_state.m_poly_fade_g, m_state.m_poly_fade_b);
 
 		// alpha
@@ -410,7 +329,7 @@ void namcos22_renderer::poly3d_drawquad(screen_device &screen, bitmap_rgb32 &bit
 				}
 				else
 				{
-					extra.zfog_enabled = true;
+					zfog_enabled = true;
 					extra.cz_sdelta = delta;
 					extra.czram = m_state.m_recalc_czram[bank].get();
 				}
@@ -431,28 +350,68 @@ void namcos22_renderer::poly3d_drawquad(screen_device &screen, bitmap_rgb32 &bit
 	// disable textures, shading (and maybe more)
 	if (objectflags & 0xc00000)
 	{
-		extra.shade_enabled = false;
-		extra.texture_enabled = false;
+		shade_enabled = false;
+		texture_enabled = false;
 	}
 
 	if (BIT(objectflags, 21))
 	{
 		// disable textures?
 		if ((cz_adjust & 0x7f0000) == 0x3a0000)
-			extra.texture_enabled = false;
+			texture_enabled = false;
 	}
 
 	// disable poly fog
 	if (BIT(cz_adjust, 23))
 	{
-		extra.zfog_enabled = false;
+		zfog_enabled = false;
 		extra.fogfactor = 0;
 	}
 
-	if (m_state.m_is_ss22)
-		render_triangle_fan<4>(m_cliprect, render_delegate(&namcos22_renderer::renderscanline_poly_ss22, this), clipverts, clipv);
-	else
-		render_triangle_fan<4>(m_cliprect, render_delegate(&namcos22_renderer::renderscanline_poly, this), clipverts, clipv);
+	const u32 render_mode = u32(m_state.m_is_ss22) << 4 |
+		u32(texture_enabled) << 3 |
+		u32(shade_enabled)   << 2 |
+		u32(zfog_enabled)    << 1 |
+		u32(pfade_enabled);
+
+#define RENDER_SCANLINE_ENTRY(ss22, texture, shade, zfog, polyfade)\
+	render_triangle_fan<4>(m_cliprect, render_delegate(&namcos22_renderer::renderscanline_poly<ss22, texture, shade, zfog, polyfade>, this), clipverts, clipv)
+
+	switch (render_mode)
+	{
+	case  0: RENDER_SCANLINE_ENTRY(false, false, false, false, false);
+	case  1: RENDER_SCANLINE_ENTRY(false, false, false, false,  true);
+	case  2: RENDER_SCANLINE_ENTRY(false, false, false,  true, false);
+	case  3: RENDER_SCANLINE_ENTRY(false, false, false,  true,  true);
+	case  4: RENDER_SCANLINE_ENTRY(false, false,  true, false, false);
+	case  5: RENDER_SCANLINE_ENTRY(false, false,  true, false,  true);
+	case  6: RENDER_SCANLINE_ENTRY(false, false,  true,  true, false);
+	case  7: RENDER_SCANLINE_ENTRY(false, false,  true,  true,  true);
+	case  8: RENDER_SCANLINE_ENTRY(false,  true, false, false, false);
+	case  9: RENDER_SCANLINE_ENTRY(false,  true, false, false,  true);
+	case 10: RENDER_SCANLINE_ENTRY(false,  true, false,  true, false);
+	case 11: RENDER_SCANLINE_ENTRY(false,  true, false,  true,  true);
+	case 12: RENDER_SCANLINE_ENTRY(false,  true,  true, false, false);
+	case 13: RENDER_SCANLINE_ENTRY(false,  true,  true, false,  true);
+	case 14: RENDER_SCANLINE_ENTRY(false,  true,  true,  true, false);
+	case 15: RENDER_SCANLINE_ENTRY(false,  true,  true,  true,  true);
+	case 16: RENDER_SCANLINE_ENTRY( true, false, false, false, false);
+	case 17: RENDER_SCANLINE_ENTRY( true, false, false, false,  true);
+	case 18: RENDER_SCANLINE_ENTRY( true, false, false,  true, false);
+	case 19: RENDER_SCANLINE_ENTRY( true, false, false,  true,  true);
+	case 20: RENDER_SCANLINE_ENTRY( true, false,  true, false, false);
+	case 21: RENDER_SCANLINE_ENTRY( true, false,  true, false,  true);
+	case 22: RENDER_SCANLINE_ENTRY( true, false,  true,  true, false);
+	case 23: RENDER_SCANLINE_ENTRY( true, false,  true,  true,  true);
+	case 24: RENDER_SCANLINE_ENTRY( true,  true, false, false, false);
+	case 25: RENDER_SCANLINE_ENTRY( true,  true, false, false,  true);
+	case 26: RENDER_SCANLINE_ENTRY( true,  true, false,  true, false);
+	case 27: RENDER_SCANLINE_ENTRY( true,  true, false,  true,  true);
+	case 28: RENDER_SCANLINE_ENTRY( true,  true,  true, false, false);
+	case 29: RENDER_SCANLINE_ENTRY( true,  true,  true, false,  true);
+	case 30: RENDER_SCANLINE_ENTRY( true,  true,  true,  true, false);
+	case 31: RENDER_SCANLINE_ENTRY( true,  true,  true,  true,  true);
+	}
 }
 
 
