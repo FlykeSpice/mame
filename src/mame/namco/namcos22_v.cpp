@@ -98,7 +98,15 @@ void namcos22_renderer::renderscanline_poly(int32_t scanline, const extent_t &ex
 		else
 			rgb.set(0, 0xff, 0xff, 0xff);
 
-		// shading before fog
+		if (!SS22)
+		{
+			//On System 22, fog happens before shading
+			if (fogfactor != 0xff)
+			{
+				rgb.blend(fogcolor, fogfactor);
+			}
+		}
+
 		if (Shade)
 		{
 			const int shade = i * ooz;
@@ -379,38 +387,38 @@ void namcos22_renderer::poly3d_drawquad(screen_device &screen, bitmap_rgb32 &bit
 
 	switch (render_mode)
 	{
-	case  0: RENDER_SCANLINE_ENTRY(false, false, false, false, false);
-	case  1: RENDER_SCANLINE_ENTRY(false, false, false, false,  true);
-	case  2: RENDER_SCANLINE_ENTRY(false, false, false,  true, false);
-	case  3: RENDER_SCANLINE_ENTRY(false, false, false,  true,  true);
-	case  4: RENDER_SCANLINE_ENTRY(false, false,  true, false, false);
-	case  5: RENDER_SCANLINE_ENTRY(false, false,  true, false,  true);
-	case  6: RENDER_SCANLINE_ENTRY(false, false,  true,  true, false);
-	case  7: RENDER_SCANLINE_ENTRY(false, false,  true,  true,  true);
-	case  8: RENDER_SCANLINE_ENTRY(false,  true, false, false, false);
-	case  9: RENDER_SCANLINE_ENTRY(false,  true, false, false,  true);
-	case 10: RENDER_SCANLINE_ENTRY(false,  true, false,  true, false);
-	case 11: RENDER_SCANLINE_ENTRY(false,  true, false,  true,  true);
-	case 12: RENDER_SCANLINE_ENTRY(false,  true,  true, false, false);
-	case 13: RENDER_SCANLINE_ENTRY(false,  true,  true, false,  true);
-	case 14: RENDER_SCANLINE_ENTRY(false,  true,  true,  true, false);
-	case 15: RENDER_SCANLINE_ENTRY(false,  true,  true,  true,  true);
-	case 16: RENDER_SCANLINE_ENTRY( true, false, false, false, false);
-	case 17: RENDER_SCANLINE_ENTRY( true, false, false, false,  true);
-	case 18: RENDER_SCANLINE_ENTRY( true, false, false,  true, false);
-	case 19: RENDER_SCANLINE_ENTRY( true, false, false,  true,  true);
-	case 20: RENDER_SCANLINE_ENTRY( true, false,  true, false, false);
-	case 21: RENDER_SCANLINE_ENTRY( true, false,  true, false,  true);
-	case 22: RENDER_SCANLINE_ENTRY( true, false,  true,  true, false);
-	case 23: RENDER_SCANLINE_ENTRY( true, false,  true,  true,  true);
-	case 24: RENDER_SCANLINE_ENTRY( true,  true, false, false, false);
-	case 25: RENDER_SCANLINE_ENTRY( true,  true, false, false,  true);
-	case 26: RENDER_SCANLINE_ENTRY( true,  true, false,  true, false);
-	case 27: RENDER_SCANLINE_ENTRY( true,  true, false,  true,  true);
-	case 28: RENDER_SCANLINE_ENTRY( true,  true,  true, false, false);
-	case 29: RENDER_SCANLINE_ENTRY( true,  true,  true, false,  true);
-	case 30: RENDER_SCANLINE_ENTRY( true,  true,  true,  true, false);
-	case 31: RENDER_SCANLINE_ENTRY( true,  true,  true,  true,  true);
+	case  0: RENDER_SCANLINE_ENTRY(false, false, false, false, false); break;
+	//case  1: RENDER_SCANLINE_ENTRY(false, false, false, false,  true); break;
+	//case  2: RENDER_SCANLINE_ENTRY(false, false, false,  true, false); break;
+	//case  3: RENDER_SCANLINE_ENTRY(false, false, false,  true,  true); break;
+	case  4: RENDER_SCANLINE_ENTRY(false, false,  true, false, false); break;
+	//case  5: RENDER_SCANLINE_ENTRY(false, false,  true, false,  true); break;
+	//case  6: RENDER_SCANLINE_ENTRY(false, false,  true,  true, false); break;
+	//case  7: RENDER_SCANLINE_ENTRY(false, false,  true,  true,  true); break;
+	case  8: RENDER_SCANLINE_ENTRY(false,  true, false, false, false); break;
+	//case  9: RENDER_SCANLINE_ENTRY(false,  true, false, false,  true); break;
+	//case 10: RENDER_SCANLINE_ENTRY(false,  true, false,  true, false); break;
+	//case 11: RENDER_SCANLINE_ENTRY(false,  true, false,  true,  true); break;
+	case 12: RENDER_SCANLINE_ENTRY(false,  true,  true, false, false); break;
+	//case 13: RENDER_SCANLINE_ENTRY(false,  true,  true, false,  true); break;
+	//case 14: RENDER_SCANLINE_ENTRY(false,  true,  true,  true, false); break;
+	//case 15: RENDER_SCANLINE_ENTRY(false,  true,  true,  true,  true); break;
+	case 16: RENDER_SCANLINE_ENTRY( true, false, false, false, false); break;
+	case 17: RENDER_SCANLINE_ENTRY( true, false, false, false,  true); break;
+	case 18: RENDER_SCANLINE_ENTRY( true, false, false,  true, false); break;
+	case 19: RENDER_SCANLINE_ENTRY( true, false, false,  true,  true); break;
+	case 20: RENDER_SCANLINE_ENTRY( true, false,  true, false, false); break;
+	case 21: RENDER_SCANLINE_ENTRY( true, false,  true, false,  true); break;
+	case 22: RENDER_SCANLINE_ENTRY( true, false,  true,  true, false); break;
+	case 23: RENDER_SCANLINE_ENTRY( true, false,  true,  true,  true); break;
+	case 24: RENDER_SCANLINE_ENTRY( true,  true, false, false, false); break;
+	case 25: RENDER_SCANLINE_ENTRY( true,  true, false, false,  true); break;
+	case 26: RENDER_SCANLINE_ENTRY( true,  true, false,  true, false); break;
+	case 27: RENDER_SCANLINE_ENTRY( true,  true, false,  true,  true); break;
+	case 28: RENDER_SCANLINE_ENTRY( true,  true,  true, false, false); break;
+	case 29: RENDER_SCANLINE_ENTRY( true,  true,  true, false,  true); break;
+	case 30: RENDER_SCANLINE_ENTRY( true,  true,  true,  true, false); break;
+	case 31: RENDER_SCANLINE_ENTRY( true,  true,  true,  true,  true); break;
 	}
 }
 
