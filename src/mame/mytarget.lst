@@ -1,0 +1,100 @@
+@source:namco/namcos22.cpp
+acedrive
+adillor
+adillorj
+airco22b
+alpinerc
+alpinerd
+alpinerjc
+alpines
+alpinr2a
+alpinr2b
+aquajet
+cybrcomm
+cybrcycc
+cybrcyccj
+dirtdash
+dirtdasha
+dirtdashj
+propcycl
+propcyclj
+raverace
+raveracej
+raveraceja
+ridgera2
+ridgera28
+ridgera2j
+ridgera2ja
+ridgerac
+ridgeraca
+ridgeracb
+ridgeracc
+ridgeracf
+ridgeracj
+timecris
+timecrisa
+tokyowar
+tokyowarj
+victlap
+victlapa
+victlapj
+
+@source:irem/m62.cpp
+battroad
+horizon
+kidniki
+kidnikib
+kidnikiu
+kungfub
+kungfub2
+kungfub3s
+kungfum
+kungfumd
+ldrun
+ldrun2
+ldrun3
+ldrun3j
+ldrun3jc
+ldrun4
+ldruna
+lithero
+lotlot
+spartanx
+spelunk2
+spelunkr
+spelunkrj
+yanchamr
+youjyudn
+
+@source:namco/namcos21.cpp
+winrun                          // (c) 1988
+winrun91                        // (c) 1991
+winrungp                        // (c) 1989
+
+@source:namco/namcos21_c67.cpp
+aircomb                         // (c) 1992 (US)
+aircombj                        // (c) 1992 (Japan)
+cybsled                         // (c) 1993 (World)
+cybsleda                        // (c) 1993 (World)
+solvalou                        // (c) 1991 (Japan)
+starblad                        // (c) 1991 (World)
+starbladj                       // (c) 1991 (Japan)
+
+@source:namco/namcos21_de.cpp
+driveyes                        // (c) 1992?
+
+
+@source:rca/vip.cpp
+vip                             // 1977 Cosmac VIP VP-711
+vp111                           // 1977 Cosmac VIP VP-111
+
+@source:taito/taitoair.cpp
+ainferno
+ainfernoj
+ainfernou
+topland
+toplandj
+
+@source:taito/mlanding.cpp
+mlanding
+mlandingj
