@@ -1,0 +1,59 @@
+name: CI MAME4Droid arm64 SUBTARGET=mytarget
+
+on:
+  push:
+    paths:
+    - '.github/workflows/**'
+    - '3rdparty/**'
+    - 'hash/**'
+    - 'scripts/**'
+    - 'src/**'
+    - 'COPYING'
+    - 'makefile'
+  pull_request:
+    paths:
+    - '.github/workflows/**'
+    - '3rdparty/**'
+    - 'hash/**'
+    - 'scripts/**'
+    - 'src/**'
+    - 'COPYING'
+    - 'makefile'
+
+permissions:
+  contents: read
+
+jobs:
+  build-mame4droid:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3
+    - name: Download Android NDK
+      run: |
+        wget https://dl.google.com/android/repository/android-ndk-r27d-linux.zip
+        unzip android-ndk-r27d-linux.zip
+    - name: Clone Mame4droid-android repository
+      run: |
+        git clone https://github.com/seleuco/MAME4droid-Current.git MAME4droid
+        sed -i 's/\.\.\/modules/modules/' MAME4droid/src/osd/myosd/input.cpp
+        sed -i '/emulator_info::myosd_droid_version = (char\*)(void\*)value;/d'  MAME4droid/src/osd/myosd/myosdmain.cpp
+    - name: Build
+      env:
+        ANDROID_NDK_HOME: ${{ github.workspace }}/android-ndk-r27d
+        OPTIMIZE: 3
+        ARCHOPTS: -DXML_POOR_ENTROPY -flto=full
+        LDOPTS: -flto=full
+        OSD: mame4droid
+        SUBTARGET: mytarget
+      run: make android-arm64 -j3
+    - uses: actions/upload-artifact@main
+      with:
+        name: mame4droid-jniLibs-${{ github.sha }}
+        path: android-project/app/src/main/libs 
+        if-no-files-found: error
