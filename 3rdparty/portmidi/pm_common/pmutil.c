@@ -8,9 +8,9 @@
 #include "pmutil.h"
 #include "pminternal.h"
 
-#ifdef WIN32
+//#ifdef WIN32
 #define bzero(addr, siz) memset(addr, 0, siz)
-#endif
+//#endif
 
 // #define QUEUE_DEBUG 1
 #ifdef QUEUE_DEBUG

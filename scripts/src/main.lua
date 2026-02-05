@@ -36,7 +36,7 @@ end
 			"EGL",
 			"GLESv1_CM",
 			"GLESv2",
-			"SDL2",
+			--"SDL2",
 		}
 
 	configuration {  }
@@ -89,19 +89,19 @@ end
 	configuration { }
 
 	if _OPTIONS["targetos"]=="android" then
-		files {
-			MAME_DIR .. "src/osd/sdl/android_main.cpp",
-		}
+		--files {
+		--	MAME_DIR .. "src/osd/sdl/android_main.cpp",
+		--}
 		targetsuffix ""
 		if _OPTIONS["SEPARATE_BIN"]~="1" then
 			if _OPTIONS["PLATFORM"]=="arm" then
 				targetdir(MAME_DIR .. "android-project/app/src/main/libs/armeabi-v7a")
-				os.copyfile(_OPTIONS["SDL_INSTALL_ROOT"] .. "/lib/libSDL2.so", MAME_DIR .. "android-project/app/src/main/libs/armeabi-v7a/libSDL2.so")
+				--os.copyfile(_OPTIONS["SDL_INSTALL_ROOT"] .. "/lib/libSDL2.so", MAME_DIR .. "android-project/app/src/main/libs/armeabi-v7a/libSDL2.so")
 				os.copyfile(androidToolchainRoot() .. "/sysroot/usr/lib/arm-linux-androideabi/libc++_shared.so", MAME_DIR .. "android-project/app/src/main/libs/armeabi-v7a/libc++_shared.so")
 			end
 			if _OPTIONS["PLATFORM"]=="arm64" then
 				targetdir(MAME_DIR .. "android-project/app/src/main/libs/arm64-v8a")
-				os.copyfile(_OPTIONS["SDL_INSTALL_ROOT"] .. "/lib/libSDL2.so", MAME_DIR .. "android-project/app/src/main/libs/arm64-v8a/libSDL2.so")
+				--os.copyfile(_OPTIONS["SDL_INSTALL_ROOT"] .. "/lib/libSDL2.so", MAME_DIR .. "android-project/app/src/main/libs/arm64-v8a/libSDL2.so")
 				os.copyfile(androidToolchainRoot() .. "/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so", MAME_DIR .. "android-project/app/src/main/libs/arm64-v8a/libc++_shared.so")
 			end
 			if _OPTIONS["PLATFORM"]=="x86" then
@@ -136,9 +136,10 @@ end
 	links {
 		"osd_" .. _OPTIONS["osd"],
 	}
-	links {
-		"qtdbg_" .. _OPTIONS["osd"],
-	}
+
+--	links {
+--		"qtdbg_" .. _OPTIONS["osd"],
+--	}
 --if (STANDALONE~=true) then
 	links {
 		"formats",
@@ -204,7 +205,7 @@ end
 		}
 	end
 	links {
-		"bgfx",
+--		"bgfx",
 		"bimg",
 		"bx",
 		"ocore_" .. _OPTIONS["osd"],
