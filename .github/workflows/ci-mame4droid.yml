@@ -48,7 +48,7 @@ jobs:
         ANDROID_NDK_HOME: ${{ github.workspace }}/android-ndk-r27d
         OPTIMIZE: 3
         ARCHOPTS: -DXML_POOR_ENTROPY -flto=full
-        LDOPTS: -flto=full
+        LDOPTS: -flto=full -Wl,-z,max-page-size=16384
         OSD: mame4droid
         SUBTARGET: mytarget
       run: make android-arm64 -j3
