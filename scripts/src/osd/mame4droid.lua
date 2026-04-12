@@ -19,6 +19,7 @@ project ("osd_" .. _OPTIONS["osd"])
 	--osdmodulesbuild()
 
 	includedirs {
+		MAME_DIR .. "src",
 		MAME_DIR .. "src/emu",
 		MAME_DIR .. "src/emu/ui",
 		MAME_DIR .. "src/frontend/mame",

@@ -40,7 +40,7 @@ jobs:
         unzip android-ndk-r27d-linux.zip
     - name: Clone Mame4droid-android repository
       run: |
-        git clone https://github.com/seleuco/MAME4droid-Current.git MAME4droid
+        git clone --branch netlist_speedhack --single-branch https://github.com/FlykeSpice/MAME4droid-Current.git MAME4droid
         sed -i 's/\.\.\/modules/modules/' MAME4droid/src/osd/myosd/input.cpp
         sed -i '/emulator_info::myosd_droid_version = (char\*)(void\*)value;/d'  MAME4droid/src/osd/myosd/myosdmain.cpp
     - name: Build
