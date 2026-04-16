@@ -397,10 +397,6 @@ endif
 # generated
 #-------------------------------------------------
 
-$(SRC)/generated/lib_entries.hxx: create_lib_entries.py $(DEVSOURCES)
-	@echo creating $@
-	$(PYTHON) create_lib_entries.py $^ > $@
-
 $(SRC)/generated/nld_devinc.h: create_devinc.py $(DEVSOURCES)
 	@echo creating $@
 	$(PYTHON) create_devinc.py $^ > $@
@@ -410,7 +406,7 @@ $(SRC)/generated/nlm_modules_lib.cpp: create_modules.py $(MODULESOURCES)
 	$(PYTHON) create_modules.py $^ > $@
 
 .PHONY: generated
-generated: $(SRC)/generated/lib_entries.hxx $(SRC)/generated/nld_devinc.h $(SRC)/generated/nlm_modules_lib.cpp
+generated: $(SRC)/generated/nld_devinc.h $(SRC)/generated/nlm_modules_lib.cpp
 
 #-------------------------------------------------
 # fix permissions, source management

@@ -15,6 +15,7 @@
 #include "plib/psource.h"
 #include "plib/ptypes.h"
 
+#include <functional>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -28,16 +29,15 @@
 #define NETLIB_DEVICE_IMPL_NS(ns, chip, p_name, p_def_param)                   \
 	NETLIB_DEVICE_IMPL_BASE(ns, chip, chip, p_name, p_def_param)
 
-#define NETLIB_DEVICE_IMPL_BASE(ns, p_alias, chip, p_name, p_def_param)        \
-	static factory::element_t::uptr NETLIB_NAME(p_alias##_c)()                 \
-	{                                                                          \
-		using devtype = factory::device_element_t<ns ::NETLIB_NAME(chip)>;     \
-		factory::properties sl(p_def_param, PSOURCELOC());                     \
-		return devtype::create(p_name, std::move(sl));                         \
-	}                                                                          \
-																			   \
-	extern factory::constructor_ptr_t decl_##p_alias;                          \
-	factory::constructor_ptr_t        decl_##p_alias = NETLIB_NAME(p_alias##_c);
+#define NETLIB_DEVICE_IMPL_BASE(ns, p_alias, chip, p_name, p_def_param)                 \
+	[[maybe_unused]] static inline int static_init_##p_alias = []() {               \
+		using devtype = factory::device_element_t<ns ::NETLIB_NAME(chip)>;      \
+		devices::registry.push_back([]() {                                      \
+			factory::properties sl(p_def_param, PSOURCELOC());              \
+			return devtype::create(p_name, std::move(sl));                  \
+		});                                                                     \
+		return 0;								\
+	}();
 
 namespace netlist::factory
 {
@@ -90,7 +90,6 @@ namespace netlist::factory
 	public:
 		using dev_uptr = device_arena::unique_ptr<core_device_t>;
 		using uptr = host_arena::unique_ptr<element_t>;
-		using pointer = element_t *;
 
 		element_t(const pstring &name, properties &&props);
 		virtual ~element_t() = default;
@@ -183,11 +182,10 @@ namespace netlist::factory
 
 		void add(element_t::uptr &&factory) noexcept(false);
 
-		element_t::pointer
-		factory_by_name(const pstring &devname) noexcept(false);
+		element_t *factory_by_name(const pstring &devname) noexcept(false);
 
 		template <class C>
-		bool is_class(element_t::pointer f) noexcept
+		bool is_class(element_t *f) noexcept
 		{
 			return bool(plib::dynamic_downcast<device_element_t<C> *>(f));
 		}
@@ -228,7 +226,12 @@ namespace netlist::factory
 
 namespace netlist::devices
 {
-	void initialize_factory(factory::list_t &factory);
+	inline std::vector<std::function<factory::element_t::uptr ()>> registry;
+	inline void initialize_factory(factory::list_t &factory)
+	{
+		for (const auto& e: registry)
+			factory.add(e());
+	}
 } // namespace netlist::devices
 
 #endif // NLFACTORY_H_

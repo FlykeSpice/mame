@@ -68,13 +68,11 @@ to (re)create the necessary files in the `generated` directory.
 `make generated` calls three python scripts:
 
 - `create_devinc.py`
-- `create_lib_entries.py`
 - `create_modules.py`
 
 which create the following files in the `generated` directory:
 
 - `nld_devinc.h`
-- `lib_entries.hxx`
 - `nlm_modules_lib.cpp`
 
 The information contained in these files in the past had to be included in various places
