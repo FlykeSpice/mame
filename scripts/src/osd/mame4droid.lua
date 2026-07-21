@@ -72,7 +72,7 @@ function mame4droid_osdmodules()
 		MAME_DIR .. "src/osd/modules/lib/osdobj_common.h",
 		MAME_DIR .. "src/osd/modules/midi/midi_module.h",
 		MAME_DIR .. "src/osd/modules/midi/none.cpp",
-		MAME_DIR .. "src/osd/modules/midi/portmidi.cpp",
+		--MAME_DIR .. "src/osd/modules/midi/portmidi.cpp",
 		MAME_DIR .. "src/osd/modules/monitor/monitor_common.cpp",
 		MAME_DIR .. "src/osd/modules/monitor/monitor_common.h",
 		--MAME_DIR .. "src/osd/modules/monitor/monitor_dxgi.cpp",
