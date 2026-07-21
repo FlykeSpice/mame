@@ -87,7 +87,7 @@ function mame4droid_osdmodules()
 		--MAME_DIR .. "src/osd/modules/netdev/pcap.cpp",
 		--MAME_DIR .. "src/osd/modules/netdev/taptun.cpp",
 		MAME_DIR .. "src/osd/modules/output/console.cpp",
-		MAME_DIR .. "src/osd/modules/output/network.cpp",
+		--MAME_DIR .. "src/osd/modules/output/network.cpp",
 		MAME_DIR .. "src/osd/modules/output/none.cpp",
 		MAME_DIR .. "src/osd/modules/output/output_module.h",
 		--MAME_DIR .. "src/osd/modules/output/win32_output.cpp",
