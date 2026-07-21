@@ -19,6 +19,8 @@ project ("osd_" .. _OPTIONS["osd"])
 	--osdmodulesbuild()
 
 	includedirs {
+		MAME_DIR,
+		MAME_DIR .. "src",
 		MAME_DIR .. "src/emu",
 		MAME_DIR .. "src/emu/ui",
 		MAME_DIR .. "src/frontend/mame",
@@ -28,7 +30,7 @@ project ("osd_" .. _OPTIONS["osd"])
 		MAME_DIR .. "src/lib/util",
 		--MAME_DIR .. "src/osd/modules/file",
 		--MAME_DIR .. "src/osd/modules/render",
-		MAME_DIR .. "MAME4droid-2024/src/osd/myosd"
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd"
 	}
 
 	files {
@@ -45,23 +47,30 @@ project ("osd_" .. _OPTIONS["osd"])
 		MAME_DIR .. "src/osd/interface/nethandler.h",
 		MAME_DIR .. "src/osd/interface/uievents.h",
 
-		MAME_DIR .. "MAME4droid/src/osd/myosd/file/posixdir.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/file/posixfile.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/file/posixfile.h",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/file/posixptty.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/file/posixsocket.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/input.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/myosd-droid.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/myosd-droid.h",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/myosd.h",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/myosd_core.h",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/myosd_saf.h",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/myosdmain.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/opensl_snd.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/opensl_snd.h",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/osdlib.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/sound.cpp",
-		MAME_DIR .. "MAME4droid/src/osd/myosd/video.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/droid/opensl_snd.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/droid/osdlib.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/droid/myosd_droid.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/droid/droid_font.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/myosdopts.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/file/posixfile.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/file/posixptty.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/file/posixdir.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/file/posixsocket.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/modules/input_myosd.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/modules/drawmyosd.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/modules/monitor_myosd.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/modules/myosd_sound.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/modules/font_myosd.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/renderer/gles3_renderer.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/renderer/gles1_renderer.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/renderer/filter_shader.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/window.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/video.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/netplay/skt_netplay.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/netplay/myosd_netplay.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/netplay/netplay.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/input.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/myosdmain.cpp"
 
 		--MAME_DIR .. "MAME4droid/src/osd/myosd/mame4droid-jni.cpp"
 	}
