@@ -49,6 +49,7 @@ CPUS["M6502"] = true
 SOUNDS["C352"] = true
 --used by namcos21
 SOUNDS["C140"] = true
+SOUNDS["MB87077"] = true
 SOUNDS["YM2610"] = true -- used by taito air system
 SOUNDS["YM2151"] = true -- used by taito midnight landing
 

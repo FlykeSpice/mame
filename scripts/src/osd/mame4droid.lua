@@ -115,6 +115,9 @@ function mame4droid_osdmodules()
 		MAME_DIR .. "src/osd/modules/sound/sound_module.h",
 		--MAME_DIR .. "src/osd/modules/sound/wasapi_sound.cpp",
 		--MAME_DIR .. "src/osd/modules/sound/xaudio2_sound.cpp",
+
+		MAME_DIR .. "src/osd/modules/osdwindow.cpp",
+		MAME_DIR .. "src/osd/modules/osdwindow.h",
 	}
 
 end
@@ -141,6 +144,10 @@ project ("osd_" .. _OPTIONS["osd"])
 		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/file",
 		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/renderer",
 		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/netplay"
+	}
+
+	defines {
+		"OSD_DROID=1",
 	}
 
 	mame4droid_osdmodules()
@@ -175,7 +182,7 @@ project ("osd_" .. _OPTIONS["osd"])
 	}
 
 	links {
-		"OpenSLES", "log"
+		"OpenSLES", "log", "GLESv1_CM", "GLESv3"
 	}
 
 project ("ocore_" .. _OPTIONS["osd"])
