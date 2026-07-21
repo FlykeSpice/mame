@@ -41,6 +41,7 @@ jobs:
     - name: Clone Mame4droid-android repository
       run: |
         git clone --branch main https://github.com/flykespice/MAME4droid-Current.git MAME4droid-Current
+        sed -i '/#include "emu\.h"/a\#include "input.h"' MAME4droid-Current/src/osd/myosd/modules/input_myosd.cpp
     - name: Apply the patches
       run: |
         for p in $(find MAME4droid-Current -name '*.patch'); do
