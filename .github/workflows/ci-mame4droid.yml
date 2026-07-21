@@ -40,8 +40,7 @@ jobs:
         unzip android-ndk-r27d-linux.zip
     - name: Clone Mame4droid-android repository
       run: |
-        git clone --branch main https://github.com/flykespice/MAME4droid-Current.git MAME4droid-Current
-        sed -i '/#include "emu\.h"/a\#include "input.h"' MAME4droid-Current/src/osd/myosd/modules/input_myosd.cpp
+        git clone --branch misc_build_fixes https://github.com/flykespice/MAME4droid-Current.git MAME4droid-Current
     - name: Apply the patches
       run: |
         for p in $(find MAME4droid-Current -name '*.patch'); do
