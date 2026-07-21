@@ -45,7 +45,7 @@ jobs:
       run: |
         for p in $(find MAME4droid-Current -name '*.patch'); do
           echo Applying $p...
-          patch $(expr "foo/bar/shit/file" : '.*MAME4droid-Current/\([^\.]*\.[^\.]*\)') $p
+          patch $(expr "$p" : '.*MAME4droid-Current/\([^\.]*\.[^\.]*\)') $p
         done
     - name: Build
       env:
