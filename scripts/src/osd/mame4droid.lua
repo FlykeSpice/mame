@@ -19,7 +19,6 @@ project ("osd_" .. _OPTIONS["osd"])
 	--osdmodulesbuild()
 
 	includedirs {
-		MAME_DIR,
 		MAME_DIR .. "src",
 		MAME_DIR .. "src/emu",
 		MAME_DIR .. "src/emu/ui",
@@ -28,6 +27,7 @@ project ("osd_" .. _OPTIONS["osd"])
 		MAME_DIR .. "src/osd",
 		MAME_DIR .. "src/lib",
 		MAME_DIR .. "src/lib/util",
+		MAME_DIR .. "3rdparty",
 		--MAME_DIR .. "src/osd/modules/file",
 		--MAME_DIR .. "src/osd/modules/render",
 		MAME_DIR .. "MAME4droid-Current/src/osd/myosd"
