@@ -930,7 +930,7 @@ inline emu_timer &device_scheduler::timer_list_remove(emu_timer &timer)
 //  execute_timers - execute timers that are due
 //-------------------------------------------------
 
-inline void device_scheduler::execute_timers()
+/*inline*/ void device_scheduler::execute_timers()
 {
 	LOG("execute_timers: new=%s head->expire=%s\n", m_basetime.as_string(PRECISION), m_timer_list->m_expire.as_string(PRECISION));
 
