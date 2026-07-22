@@ -90,7 +90,7 @@ function mame4droid_osdmodules()
 		--MAME_DIR .. "src/osd/modules/render/blit13.ipp",
 		--MAME_DIR .. "src/osd/modules/render/draw13.cpp",
 		--MAME_DIR .. "src/osd/modules/render/drawgdi.cpp",
-		--MAME_DIR .. "src/osd/modules/render/drawnone.cpp",
+		MAME_DIR .. "src/osd/modules/render/drawnone.cpp",
 		--MAME_DIR .. "src/osd/modules/render/drawogl.cpp",
 		--MAME_DIR .. "src/osd/modules/render/drawsdl.cpp",
 		--MAME_DIR .. "src/osd/modules/render/drawsdl3accel.cpp",
@@ -176,10 +176,6 @@ project ("osd_" .. _OPTIONS["osd"])
 		--MAME_DIR .. "MAME4droid/src/osd/myosd/mame4droid-jni.cpp"
 	}
 
-	links {
-		"OpenSLES",
-		"log",
-	}
 
 project ("ocore_" .. _OPTIONS["osd"])
 	targetsubdir(_OPTIONS["target"] .."_" .. _OPTIONS["subtarget"])

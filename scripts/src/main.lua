@@ -37,6 +37,8 @@ end
 			"GLESv1_CM",
 			"GLESv2",
 			"GLESv3",
+			"OpenSLES",
+			"log",
 			--"SDL2",
 		}
 
