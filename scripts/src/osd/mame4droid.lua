@@ -5,11 +5,6 @@
 function maintargetosdoptions(_target, _subtarget)
 end
 
-
-links {
-	"OpenSLES"
-}
-
 function mame4droid_osdmodules()
 	files {
 		MAME_DIR .. "src/osd/watchdog.cpp",
@@ -182,7 +177,8 @@ project ("osd_" .. _OPTIONS["osd"])
 	}
 
 	links {
-		"OpenSLES", "log", "GLESv1_CM", "GLESv3"
+		"OpenSLES",
+		"log",
 	}
 
 project ("ocore_" .. _OPTIONS["osd"])

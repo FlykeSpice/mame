@@ -36,6 +36,7 @@ end
 			"EGL",
 			"GLESv1_CM",
 			"GLESv2",
+			"GLESv3",
 			--"SDL2",
 		}
 
