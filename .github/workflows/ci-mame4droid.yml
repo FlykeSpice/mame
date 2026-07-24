@@ -51,7 +51,7 @@ jobs:
       env:
         ANDROID_NDK_HOME: ${{ github.workspace }}/android-ndk-r27d
         OPTIMIZE: 2
-        SYMBOLS: 2
+        SYMBOLS: 1
         ARCHOPTS: -DXML_POOR_ENTROPY
         LDOPTS: -Wl,-z,max-page-size=16384
         OSD: mame4droid
