@@ -13,7 +13,7 @@
 --------------------------------------------------
 
 -- M68020 used by namcos22
--- M68000 used by namcos21
+-- M68000 used by namcos21 & sega model 1 sound board
 CPUS["M680X0"] = true
 
 -- audio cpu used by namcos21
@@ -40,6 +40,12 @@ CPUS["M6805"] = true
 CPUS["M37710"] = true
 CPUS["M6502"] = true
 
+--used by sega model 1
+CPUS["MB86233"] = true
+CPUS["V60"] = true
+CPUS["I386"] = true
+
+
 --------------------------------------------------
 -- Specify all the sound cores necessary for the
 -- drivers referenced in tiny.lst.
@@ -58,19 +64,24 @@ SOUNDS["YM2151"] = true -- used by taito midnight landing
 SOUNDS["AY8910"] = true
 SOUNDS["MSM5205"] = true --used by Taito midnight landing
 
+--used by sega model 1
+SOUNDS["SPEAKER"] = true
+SOUNDS["MPEG_AUDIO"] = true
+SOUNDS["MULTIPCM"] = true
+
 --------------------------------------------------
 -- specify available video cores
 --------------------------------------------------
 
 --VIDEOS["MC6845"] = true
-
+VIDEOS["HD44780"] = true -- used by sega model 1 I/O board for lcd display diagnostic
 
 --------------------------------------------------
 -- specify available machine cores
 --------------------------------------------------
 
 --used by namcos22
-MACHINES["EEPROMDEV"] = true
+MACHINES["EEPROMDEV"] = true -- used by sega model 1 too
 MACHINES["MB87078"] = true
 
 -- used by Irem62
@@ -85,12 +96,50 @@ MACHINES["Z80CTC"] = true
 MACHINES["Z80PIO"] = true
 MACHINES["Z80SIO"] = true
 
+-- used by sega model 1
+MACHINES["I8251"]  = true
+MACHINES["GEN_FIFO"] = true
+MACHINES["MB8421"] = true
+MACHINES["MSM6253"] = true -- used by the io board
+MACHINES["AM9517A"] = true
+MACHINES["MB89374"] = true
+MACHINES["MB3773"] = true
 
 --------------------------------------------------
 -- specify available bus cores
 --------------------------------------------------
+BUSES["RS232"] = true -- used by sega model 1 I/O board
+--machines used by rs232...
+MACHINES["VOTRAXTNT"] = true
+	SOUNDS["VOTRAX_SC01A"] = true
 
+MACHINES["EXORTERM"] = true
+	MACHINES["MC14411"] = true
 
+MACHINES["PCF8573"] = true
+MACHINES["ACIA6850"] = true
+
+MACHINES["IE15"] = true
+	CPUS["IE15"] = true
+
+MACHINES["SWTPC8212"] = true
+	MACHINES["6821PIA"] = true
+	MACHINES["INS8250"] = true
+	MACHINES["INPUT_MERGER"] = true
+
+MACHINES["S97801"] = true
+	MACHINES["SCN_PCI"] = true
+	CPUS["MCS48"] = true
+	CPUS["MCS51"] = true
+	VIDEOS["SCN2674"] = true
+
+BUSES["HEATHZENITH_H19"] = true
+	VIDEOS["MC6845"] = true
+	MACHINES["MM5740"] = true
+
+BUSES["SUNKBD"] = true
+
+SOUNDS["BEEP"] = true
 --------------------------------------------------
 -- This is the list of files that are necessary
 -- for building all of the drivers referenced
@@ -157,7 +206,19 @@ function createProjects_mame_mytarget(_target, _subtarget)
 		MAME_DIR .. "src/mame/shared/taitosnd.cpp",
 
 		-- Taito Midnight Landing
-		MAME_DIR .. "src/mame/taito/mlanding.cpp"
+		MAME_DIR .. "src/mame/taito/mlanding.cpp",
+
+		-- Sega Model 1 board
+		MAME_DIR .. "src/mame/sega/model1.cpp",
+		MAME_DIR .. "src/mame/sega/model1_m.cpp",
+		MAME_DIR .. "src/mame/sega/model1_v.cpp",
+		MAME_DIR .. "src/mame/sega/model1io.cpp",
+		MAME_DIR .. "src/mame/sega/model1io2.cpp",
+		MAME_DIR .. "src/mame/sega/m1comm.cpp",
+		MAME_DIR .. "src/mame/sega/segaic24.cpp",
+		MAME_DIR .. "src/mame/shared/segam1audio.cpp",
+		MAME_DIR .. "src/mame/sega/315_5338a.cpp",
+		MAME_DIR .. "src/mame/sega/dsbz80.cpp"
 	}
 end
 
