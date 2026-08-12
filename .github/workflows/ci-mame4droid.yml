@@ -51,7 +51,7 @@ jobs:
       env:
         ANDROID_NDK_HOME: ${{ github.workspace }}/android-ndk-r27d
         OPTIMIZE: 3
-        ARCHOPTS: -DXML_POOR_ENTROPY -flto=full
+        ARCHOPTS: -DXML_POOR_ENTROPY -I${{ github.workspace }}/3rdparty/glm
         LDOPTS: -flto=full -Wl,-z,max-page-size=16384
         OSD: mame4droid
         SUBTARGET: mytarget
