@@ -187,7 +187,7 @@ function createProjects_mame_mytarget(_target, _subtarget)
 		MAME_DIR .. "src/mame/sega/m1comm.cpp",
 		MAME_DIR .. "src/mame/sega/segaic24.cpp",
 		MAME_DIR .. "src/mame/shared/segam1audio.cpp",
-		MAME_DIR .. "src/mame/shared/315_5338a.cpp"
+		MAME_DIR .. "src/mame/sega/315_5338a.cpp"
 	}
 end
 
