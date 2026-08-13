@@ -108,7 +108,7 @@ MACHINES["MB3773"] = true
 --------------------------------------------------
 -- specify available bus cores
 --------------------------------------------------
-BUSES["RS232"] = true -- used by sega model 1 I/O board
+--BUSES["RS232"] = true -- used by sega model 1 I/O board
 
 --------------------------------------------------
 -- This is the list of files that are necessary
@@ -187,7 +187,10 @@ function createProjects_mame_mytarget(_target, _subtarget)
 		MAME_DIR .. "src/mame/sega/m1comm.cpp",
 		MAME_DIR .. "src/mame/sega/segaic24.cpp",
 		MAME_DIR .. "src/mame/shared/segam1audio.cpp",
-		MAME_DIR .. "src/mame/sega/315_5338a.cpp"
+		MAME_DIR .. "src/mame/sega/315_5338a.cpp",
+
+		MAME_DIR .. "src/devices/bus/rs232/rs232.cpp",
+		MAME_DIR .. "src/devices/bus/rs232/rs232.h"
 	}
 end
 
