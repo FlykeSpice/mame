@@ -130,6 +130,8 @@ MACHINES["SWTPC8212"] = true
 MACHINES["S97801"] = true
 	MACHINES["SCN_PCI"] = true
 	CPUS["MCS48"] = true
+	CPUS["MCS51"] = true
+	VIDEOS["SCN2674"] = true
 
 BUSES["HEATHZENITH_H19"] = true
 	VIDEOS["MC6845"] = true
@@ -215,7 +217,8 @@ function createProjects_mame_mytarget(_target, _subtarget)
 		MAME_DIR .. "src/mame/sega/m1comm.cpp",
 		MAME_DIR .. "src/mame/sega/segaic24.cpp",
 		MAME_DIR .. "src/mame/shared/segam1audio.cpp",
-		MAME_DIR .. "src/mame/sega/315_5338a.cpp"
+		MAME_DIR .. "src/mame/sega/315_5338a.cpp",
+		MAME_DIR .. "src/mame/sega/dsbz80.cpp"
 	}
 end
 
