@@ -108,8 +108,36 @@ MACHINES["MB3773"] = true
 --------------------------------------------------
 -- specify available bus cores
 --------------------------------------------------
---BUSES["RS232"] = true -- used by sega model 1 I/O board
+BUSES["RS232"] = true -- used by sega model 1 I/O board
+--machines used by rs232...
+MACHINES["VOTRAXTNT"] = true
+	SOUNDS["VOTRAX_SC01A"] = true
 
+MACHINES["EXORTERM"] = true
+	MACHINES["MC14411"] = true
+
+MACHINES["PCF8573"] = true
+MACHINES["ACIA6850"] = true
+
+MACHINES["IE15"] = true
+	CPUS["IE15"] = true
+
+MACHINES["SWTPC8212"] = true
+	MACHINES["6821PIA"] = true
+	MACHINES["INS8250"] = true
+	MACHINES["INPUT_MERGER"] = true
+
+MACHINES["S97801"] = true
+	MACHINES["SCN_PCI"] = true
+	CPUS["MCS48"] = true
+
+BUSES["HEATHZENITH_H19"] = true
+	VIDEOS["MC6845"] = true
+	MACHINES["MM5740"] = true
+
+BUSES["SUNKBD"] = true
+
+SOUNDS["BEEP"] = true
 --------------------------------------------------
 -- This is the list of files that are necessary
 -- for building all of the drivers referenced
@@ -187,10 +215,7 @@ function createProjects_mame_mytarget(_target, _subtarget)
 		MAME_DIR .. "src/mame/sega/m1comm.cpp",
 		MAME_DIR .. "src/mame/sega/segaic24.cpp",
 		MAME_DIR .. "src/mame/shared/segam1audio.cpp",
-		MAME_DIR .. "src/mame/sega/315_5338a.cpp",
-
-		MAME_DIR .. "src/devices/bus/rs232/rs232.cpp",
-		MAME_DIR .. "src/devices/bus/rs232/rs232.h"
+		MAME_DIR .. "src/mame/sega/315_5338a.cpp"
 	}
 end
 
