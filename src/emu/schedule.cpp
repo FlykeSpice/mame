@@ -91,6 +91,7 @@ inline emu_timer &emu_timer::init(
 	m_start = m_scheduler->time();
 	m_expire = m_start + start_delay;
 	m_enabled = !m_expire.is_never();
+	m_inactive = false;
 
 	// if we're not temporary, register ourselves with the save state system
 	if (!m_temporary)
@@ -155,9 +156,25 @@ void emu_timer::adjust(attotime start_delay, s32 param, const attotime &period) 
 	m_expire = m_start + start_delay;
 	m_period = period;
 
-	// remove and re-insert the timer in its new order
-	m_scheduler->timer_list_remove(*this);
-	m_scheduler->timer_list_insert(*this);
+	if (m_expire.is_never())
+	{
+		// keep inactive timers in a separate list
+		m_scheduler->timer_list_remove(*this);
+		m_scheduler->inactive_timers_insert(*this);
+	}
+	else if (m_inactive)
+	{
+		m_scheduler->timer_list_remove(*this); //remove from inactive list
+		m_scheduler->timer_list_insert(*this);
+	}
+	else
+	{
+		// adjust relative to its position and displacement
+		if (m_prev != nullptr && m_expire < m_prev->m_expire)
+			m_scheduler->adjust_before(*this);
+		else
+			m_scheduler->adjust_after(*this);
+	}
 
 	// if this was inserted as the head, abort the current timeslice and resync
 	if (this == m_scheduler->first_timer())
@@ -247,9 +264,7 @@ inline void emu_timer::schedule_next_period() noexcept
 	m_start = m_expire;
 	m_expire += m_period;
 
-	// remove and re-insert us
-	m_scheduler->timer_list_remove(*this);
-	m_scheduler->timer_list_insert(*this);
+	m_scheduler->adjust_after(*this);
 }
 
 
@@ -837,6 +852,76 @@ void device_scheduler::rebuild_execute_list()
 	*active_tailptr = suspend_list;
 }
 
+inline void device_scheduler::adjust_before(emu_timer &timer)
+{
+	//Best case: early exit if we're already the first or we don't need to move from our position
+	if (m_timer_list == &timer || (timer.m_prev != nullptr && timer.m_expire >= timer.m_prev->m_expire))
+		return;
+
+	timer_list_remove(timer);
+
+	//Walk backwards the list
+	for (emu_timer* curtimer = timer.m_prev; curtimer; curtimer = curtimer->m_prev)
+	{
+		if (timer.m_expire > curtimer->m_expire)
+		{
+			timer.m_prev = curtimer;
+			timer.m_next = curtimer->m_next;
+			curtimer->m_next = &timer;
+
+			return;
+		}
+	}
+
+	//We reached beginning of list, make m_timer_list point to our timer
+	m_timer_list->m_prev = &timer;
+	timer.m_next = m_timer_list;
+	m_timer_list = &timer;
+}
+
+inline void device_scheduler::adjust_after(emu_timer &timer)
+{
+	//Best case: early exit if we already last or we don't need to move from our position
+	if (timer.m_next == nullptr || timer.m_expire <= timer.m_next->m_expire)
+		return;
+
+	timer_list_remove(timer);
+
+	emu_timer* prevtimer = nullptr;
+	for (emu_timer* curtimer = timer.m_next; curtimer; prevtimer = curtimer, curtimer = curtimer->m_next)
+	{
+		if (timer.m_expire < curtimer->m_expire)
+		{
+			timer.m_prev = prevtimer;
+			timer.m_next = curtimer;
+
+			if (prevtimer)
+				prevtimer->m_next = &timer;
+			else
+				m_timer_list = &timer;
+
+			curtimer->m_prev = &timer;
+			return;
+		}
+	}
+
+	//We reached end of list. Append timer to the last one
+	prevtimer->m_next = &timer;
+	timer.m_prev = prevtimer;
+}
+
+void device_scheduler::inactive_timers_insert(emu_timer &timer)
+{
+		// keep inactive timers in a separate list
+		if (m_inactive_timers)
+			m_inactive_timers->m_prev = &timer;
+
+		timer.m_next = m_inactive_timers;
+		timer.m_prev = nullptr;
+		timer.m_inactive = true;
+
+		m_inactive_timers = &timer;
+}
 
 //-------------------------------------------------
 //  timer_list_insert - insert a new timer into
@@ -883,16 +968,8 @@ inline emu_timer &device_scheduler::timer_list_insert(emu_timer &timer)
 		timer.m_next = nullptr;
 	}
 	else
-	{
-		// keep inactive timers in a separate list
-		if (m_inactive_timers)
-			m_inactive_timers->m_prev = &timer;
+		inactive_timers_insert(timer);
 
-		timer.m_next = m_inactive_timers;
-		timer.m_prev = nullptr;
-
-		m_inactive_timers = &timer;
-	}
 	return timer;
 }
 
@@ -921,6 +998,8 @@ inline emu_timer &device_scheduler::timer_list_remove(emu_timer &timer)
 
 	if (timer.m_next)
 		timer.m_next->m_prev = timer.m_prev;
+
+	timer.m_inactive = false;
 
 	return timer;
 }

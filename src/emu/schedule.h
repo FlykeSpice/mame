@@ -82,6 +82,7 @@ private:
 	s32                 m_param;        // integer parameter
 	bool                m_enabled;      // is the timer enabled?
 	bool                m_temporary;    // is the timer temporary?
+	bool                m_inactive;     // is the timer inactive (in inactive list)?
 	attotime            m_period;       // the repeat frequency of the timer
 	attotime            m_start;        // time when the timer was started
 	attotime            m_expire;       // time when the timer will expire
@@ -146,7 +147,10 @@ private:
 	// timer helpers
 	template <bool CheckIndex = false> emu_timer &timer_list_insert(emu_timer &timer);
 	emu_timer &timer_list_remove(emu_timer &timer);
+	void inactive_timers_insert(emu_timer &timer);
 	void execute_timers();
+	void adjust_before(emu_timer &timer);
+	void adjust_after(emu_timer &timer);
 
 	// internal state
 	running_machine &           m_machine;                  // reference to our machine
