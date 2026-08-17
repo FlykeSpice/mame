@@ -38,7 +38,7 @@ class emu_timer
 {
 public:
 	// getters
-	bool enabled() const noexcept { return m_enabled; }
+	bool enabled() const noexcept { return !m_inactive; }
 	s32 param() const noexcept { return m_param; }
 
 	// setters
@@ -80,9 +80,8 @@ private:
 	emu_timer *         m_prev;         // previous timer in order in the list
 	timer_expired_delegate m_callback;  // callback function
 	s32                 m_param;        // integer parameter
-	bool                m_enabled;      // is the timer enabled?
-	bool                m_temporary;    // is the timer temporary?
 	bool                m_inactive;     // is the timer inactive (in inactive list)?
+	bool                m_temporary;    // is the timer temporary?
 	attotime            m_period;       // the repeat frequency of the timer
 	attotime            m_start;        // time when the timer was started
 	attotime            m_expire;       // time when the timer will expire
