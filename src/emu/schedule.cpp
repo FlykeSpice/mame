@@ -49,7 +49,7 @@ inline emu_timer::emu_timer() noexcept :
 	m_next(nullptr),
 	m_prev(nullptr),
 	m_param(0),
-	m_enabled(false),
+	m_inactive(false),
 	m_temporary(false),
 	m_period(attotime::zero),
 	m_start(attotime::zero),
@@ -90,7 +90,6 @@ inline emu_timer &emu_timer::init(
 
 	m_start = m_scheduler->time();
 	m_expire = m_start + start_delay;
-	m_enabled = !m_expire.is_never();
 	m_inactive = false;
 
 	// if we're not temporary, register ourselves with the save state system
@@ -115,16 +114,17 @@ bool emu_timer::enable(bool enable) noexcept
 	assert(m_scheduler);
 
 	// reschedule only if the state has changed
-	const bool old = m_enabled;
-	if (old != enable)
-	{
-		// set the enable flag
-		m_enabled = enable;
+	const bool old = m_inactive;
+	if (old == enable)
+		return old;
 
-		// remove the timer and insert back into the list
-		m_scheduler->timer_list_remove(*this);
+	m_scheduler->timer_list_remove(*this); //Remove timer from old list
+	if (enable)
+		// insert it back into the active list
 		m_scheduler->timer_list_insert(*this);
-	}
+	else
+		m_scheduler->inactive_timers_insert(*this);
+
 	return old;
 }
 
@@ -145,7 +145,6 @@ void emu_timer::adjust(attotime start_delay, s32 param, const attotime &period) 
 
 	// compute the time of the next firing and insert into the list
 	m_param = param;
-	m_enabled = true;
 
 	// clamp negative times to 0
 	if (start_delay.seconds() < 0)
@@ -243,7 +242,7 @@ void emu_timer::register_save(save_manager &manager)
 
 	// save the bits
 	manager.save_item(nullptr, "timer", name.c_str(), index, NAME(m_param));
-	manager.save_item(nullptr, "timer", name.c_str(), index, NAME(m_enabled));
+	manager.save_item(nullptr, "timer", name.c_str(), index, NAME(m_inactive));
 	manager.save_item(nullptr, "timer", name.c_str(), index, NAME(m_period));
 	manager.save_item(nullptr, "timer", name.c_str(), index, NAME(m_start));
 	manager.save_item(nullptr, "timer", name.c_str(), index, NAME(m_expire));
@@ -277,7 +276,7 @@ void emu_timer::dump() const
 {
 	assert(m_scheduler);
 
-	m_scheduler->machine().logerror("%p: en=%d temp=%d exp=%15s start=%15s per=%15s param=%d", this, m_enabled, m_temporary, m_expire.as_string(PRECISION), m_start.as_string(PRECISION), m_period.as_string(PRECISION), m_param);
+	m_scheduler->machine().logerror("%p: inactive=%d temp=%d exp=%15s start=%15s per=%15s param=%d", this, m_inactive, m_temporary, m_expire.as_string(PRECISION), m_start.as_string(PRECISION), m_period.as_string(PRECISION), m_param);
 	if (!m_callback.name())
 		m_scheduler->machine().logerror(" cb=NULL\n");
 	else
@@ -734,7 +733,7 @@ void device_scheduler::postload()
 	}
 
 	// special dummy timer
-	assert(!m_timer_list->m_enabled);
+	assert(!m_timer_list->m_inactive);
 	assert(m_timer_list->m_temporary);
 	assert(m_timer_list->m_expire.is_never());
 
@@ -931,8 +930,7 @@ void device_scheduler::inactive_timers_insert(emu_timer &timer)
 template <bool CheckIndex>
 inline emu_timer &device_scheduler::timer_list_insert(emu_timer &timer)
 {
-	// disabled timers never expire
-	if (!timer.m_expire.is_never() && timer.m_enabled)
+	if (!timer.m_expire.is_never())
 	{
 		// loop over the timer list
 		emu_timer *prevtimer = nullptr;
@@ -1016,11 +1014,7 @@ inline void device_scheduler::execute_timers()
 	// now process any timers that are overdue
 	while (m_timer_list->m_expire <= m_basetime)
 	{
-		// if this is a one-shot timer, disable it now
 		emu_timer &timer = *m_timer_list;
-		bool was_enabled = timer.m_enabled;
-		if (timer.m_period.is_zero() || timer.m_period.is_never())
-			timer.m_enabled = false;
 
 		// set the global state of which callback we're in
 		m_callback_timer_modified = false;
@@ -1028,7 +1022,6 @@ inline void device_scheduler::execute_timers()
 		m_callback_timer_expire_time = timer.m_expire;
 
 		// call the callback
-		if (was_enabled)
 		{
 			auto profile = g_profiler.start(PROFILER_TIMER_CALLBACK);
 
@@ -1045,7 +1038,14 @@ inline void device_scheduler::execute_timers()
 			if (!timer.m_temporary)
 			{
 				// if the timer is not temporary, reschedule it
-				timer.schedule_next_period();
+				if (timer.m_period.is_zero() || timer.m_period.is_never())
+				{
+					//It's a one-shot timer, move it to inactive list
+					timer_list_remove(timer);
+					inactive_timers_insert(timer);
+				}
+				else
+					timer.schedule_next_period();
 			}
 			else
 			{
