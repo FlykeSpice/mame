@@ -148,6 +148,35 @@ struct namcos22_object_data
 	int flipy;
 };
 
+struct namcos22_mixer
+{
+	rgbaint_t screen_fade_color;
+
+	u16 flags;
+
+	u16 bg_palbase;
+	u16 text_palbase;
+
+	u32 fog_colormask;
+
+	rgbaint_t rgb_mix[3];
+	rgbaint_t fog_per_cztype[4];
+
+	//ss22 only members
+	bool poly_fade_enabled;
+
+	rgbaint_t poly_fade_color;
+	rgbaint_t fog_color;
+	u16 spot_factor;
+
+	u8 poly_alpha_color;
+	u8 poly_alpha_pen;
+	u8 poly_alpha_factor;
+
+	u8 screen_fade_factor;
+
+	u8 layer;
+};
 
 class namcos22_renderer : public poly_manager<poly3d_t, namcos22_object_data, 4>
 {
@@ -161,6 +190,7 @@ public:
 
 private:
 	namcos22_state &m_state;
+	const namcos22_mixer &m_mixer;
 
 	struct namcos22_scenenode m_scenenode_root;
 	struct namcos22_scenenode *m_scenenode_cur;
@@ -218,7 +248,7 @@ public:
 		m_cgram(*this, "cgram"),
 		m_textram(*this, "textram"),
 		m_polygonram(*this, "polygonram"),
-		m_mixer(*this, "video_mixer"),
+		m_mixraw(*this, "video_mixer"),
 		m_gamma_proms(*this, "gamma_proms"),
 		m_vics_data(*this, "vics_data"),
 		m_vics_control(*this, "vics_control"),
@@ -243,31 +273,13 @@ public:
 	void init_ridgerac();
 
 	// renderer
+	namcos22_mixer m_mixer;
 	u16 *m_texture_tilemap;
 	std::unique_ptr<u8[]> m_texture_tileattr;
 	u8 *m_texture_tiledata;
 	std::unique_ptr<u8[]> m_texture_ayx_to_pixel;
 	int m_is_ss22;
-	int m_mixer_flags;
-	int m_screen_fade_factor;
-	int m_screen_fade_r;
-	int m_screen_fade_g;
-	int m_screen_fade_b;
-	bool m_poly_fade_enabled;
-	int m_poly_fade_r;
-	int m_poly_fade_g;
-	int m_poly_fade_b;
-	int m_poly_alpha_color;
-	int m_poly_alpha_pen;
-	int m_poly_alpha_factor;
-	u32 m_fog_colormask;
-	int m_fog_r;
-	int m_fog_g;
-	int m_fog_b;
 	std::unique_ptr<u8[]> m_recalc_czram[4];
-	int m_fog_r_per_cztype[4];
-	int m_fog_g_per_cztype[4];
-	int m_fog_b_per_cztype[4];
 	u16 m_czattr[8] = { };
 
 	required_device<palette_device> m_palette;
@@ -334,6 +346,7 @@ protected:
 	u8 iomcu_port4_s22_r();
 	u16 mcuc74_speedup_r();
 	void mcu_speedup_w(offs_t offset, u16 data, u16 mem_mask = ~0);
+	void mixer_w(offs_t offset, u32 data, u32 mem_mask);
 
 	static u8 nthbyte(const u32 *src, int n) { return util::big_endian_cast<u8>(src)[n]; }
 	static u16 nthword(const u32 *src, int n) { return util::big_endian_cast<u16>(src)[n]; }
@@ -387,7 +400,6 @@ protected:
 	void simulate_slavedsp();
 
 	virtual void init_tables();
-	void update_mixer();
 	void update_palette();
 	void draw_direct_poly(const u16 *src);
 	void draw_polygons();
@@ -431,7 +443,7 @@ protected:
 	required_shared_ptr<u32> m_cgram;
 	required_shared_ptr<u32> m_textram;
 	required_shared_ptr<u32> m_polygonram;
-	required_shared_ptr<u32> m_mixer;
+	required_shared_ptr<u32> m_mixraw;
 	optional_region_ptr<u8> m_gamma_proms;
 	optional_shared_ptr<u32> m_vics_data;
 	optional_shared_ptr<u32> m_vics_control;
@@ -492,9 +504,6 @@ protected:
 	u16 m_rowscroll[480] = { };
 	u16 m_lastrow = 0;
 	u64 m_rs_frame = 0;
-	int m_spot_factor = 0;
-	int m_text_palbase = 0;
-	int m_bg_palbase = 0;
 
 	int m_camera_vx = 0;
 	int m_camera_vy = 0;
@@ -571,6 +580,8 @@ protected:
 	template <int Channel> u16 mcu_adc_r();
 	u16 mcu130_speedup_r();
 	u16 mcu141_speedup_r();
+
+	void ss22_mixer_w(offs_t offset, u32 data, u32 mem_mask);
 
 	INTERRUPT_GEN_MEMBER(namcos22s_interrupt);
 	TIMER_DEVICE_CALLBACK_MEMBER(mcu_irq);

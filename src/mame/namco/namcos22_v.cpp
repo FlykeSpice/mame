@@ -14,7 +14,8 @@
 
 namcos22_renderer::namcos22_renderer(namcos22_state &state) :
 	poly_manager<poly3d_t, namcos22_object_data, 4>(state.machine()),
-	m_state(state)
+	m_state(state),
+	m_mixer(state.m_mixer)
 	{
 		init();
 	}
@@ -140,7 +141,7 @@ void namcos22_renderer::renderscanline_poly_ss22(int32_t scanline, const extent_
 	const int fadefactor = 0xff - extra.fadefactor;
 	const int alphafactor = 0xff - extra.alpha;
 	const bool alpha_enabled = extra.alpha_enabled;
-	const u8 alpha_pen = m_state.m_poly_alpha_pen;
+	const u8 alpha_pen = m_mixer.poly_alpha_pen;
 	const bool polyfade_enabled = extra.pfade_enabled;
 	rgbaint_t fadecolor = extra.fadecolor;
 	rgbaint_t polycolor = extra.polycolor;
@@ -240,7 +241,7 @@ void namcos22_renderer::renderscanline_sprite(int32_t scanline, const extent_t &
 	const int prioverchar = extra.prioverchar;
 	const int alphafactor = extra.alpha;
 	const bool alpha_enabled = extra.alpha_enabled;
-	const u8 alpha_pen = m_state.m_poly_alpha_pen;
+	const u8 alpha_pen = m_mixer.poly_alpha_pen;
 	const int fogfactor = 0xff - extra.fogfactor;
 	const int fadefactor = 0xff - extra.fadefactor;
 	rgbaint_t fogcolor(extra.fogcolor);
@@ -369,19 +370,19 @@ void namcos22_renderer::poly3d_drawquad(screen_device &screen, bitmap_rgb32 &bit
 	if (m_state.m_is_ss22)
 	{
 		// global fade
-		if (BIT(m_state.m_mixer_flags, 0))
+		if (BIT(m_mixer.flags, 0))
 		{
-			extra.fadefactor = m_state.m_screen_fade_factor;
-			extra.fadecolor.set(0, m_state.m_screen_fade_r, m_state.m_screen_fade_g, m_state.m_screen_fade_b);
+			extra.fadefactor = m_mixer.screen_fade_factor;
+			extra.fadecolor = m_mixer.screen_fade_color;
 		}
 
 		// poly fade
-		extra.pfade_enabled = m_state.m_poly_fade_enabled;
-		extra.polycolor.set(0, m_state.m_poly_fade_r, m_state.m_poly_fade_g, m_state.m_poly_fade_b);
+		extra.pfade_enabled = m_mixer.poly_fade_enabled;
+		extra.polycolor = m_mixer.poly_fade_color;
 
 		// alpha
-		extra.alpha = m_state.m_poly_alpha_factor;
-		extra.alpha_enabled = (color & 0x7f) != m_state.m_poly_alpha_color;
+		extra.alpha = m_mixer.poly_alpha_factor;
+		extra.alpha_enabled = (color & 0x7f) != m_mixer.poly_alpha_color;
 
 		// poly fog
 		if (BIT(~color, 7))
@@ -397,7 +398,7 @@ void namcos22_renderer::poly3d_drawquad(screen_device &screen, bitmap_rgb32 &bit
 				if (delta < 0) delta |= 0xff00;
 				else delta &= 0x00ff;
 
-				extra.fogcolor.set(0, m_state.m_fog_r, m_state.m_fog_g, m_state.m_fog_b);
+				extra.fogcolor = m_mixer.fog_color;
 
 				if (direct)
 				{
@@ -418,8 +419,8 @@ void namcos22_renderer::poly3d_drawquad(screen_device &screen, bitmap_rgb32 &bit
 		// poly fog
 		if (BIT(~color, 7))
 		{
-			const int cz_color = cz_type & nthbyte(&m_state.m_fog_colormask, cz_type);
-			extra.fogcolor.set(0, m_state.m_fog_r_per_cztype[cz_color], m_state.m_fog_g_per_cztype[cz_color], m_state.m_fog_b_per_cztype[cz_color]);
+			const int cz_color = cz_type & nthbyte(&m_mixer.fog_colormask, cz_type);
+			extra.fogcolor  = m_mixer.fog_per_cztype[cz_color];
 			extra.fogfactor = nthbyte(m_state.m_czram, cz_type << 13 | cz_value);
 		}
 	}
@@ -515,22 +516,22 @@ void namcos22_renderer::poly3d_drawsprite(
 		vert[3].p[1] = fheight;
 
 		// global fade
-		if (BIT(m_state.m_mixer_flags, 1) || fade_enabled)
+		if (BIT(m_mixer.flags, 1) || fade_enabled)
 		{
-			extra.fadefactor = m_state.m_screen_fade_factor;
-			extra.fadecolor.set(0, m_state.m_screen_fade_r, m_state.m_screen_fade_g, m_state.m_screen_fade_b);
+			extra.fadefactor = m_mixer.screen_fade_factor;
+			extra.fadecolor = m_mixer.screen_fade_color;
 		}
 
 		// sprite fog
 		if (BIT(~color, 7) && cz_factor > 0)
 		{
 			extra.fogfactor = cz_factor;
-			extra.fogcolor.set(0, m_state.m_fog_r, m_state.m_fog_g, m_state.m_fog_b);
+			extra.fogcolor = m_mixer.fog_color;
 		}
 
 		// alpha
 		extra.alpha = alpha;
-		extra.alpha_enabled = (color & 0x7f) != m_state.m_poly_alpha_color;
+		extra.alpha_enabled = (color & 0x7f) != m_mixer.poly_alpha_color;
 
 		render_polygon<4, 2>(m_cliprect, render_delegate(&namcos22_renderer::renderscanline_sprite, this), vert);
 	}
@@ -824,7 +825,7 @@ void namcos22_state::draw_direct_poly(const u16 *src)
 	if (machine().video().skip_this_frame())
 		return;
 
-	const bool polys_enabled = m_is_ss22 ? BIT(nthbyte(m_mixer, 0x1f), 0) : true;
+	const bool polys_enabled = m_is_ss22 ? BIT(m_mixer.flags, 0) : true;
 	if (!polys_enabled) return;
 	/**
 	* word#0:
@@ -2041,20 +2042,19 @@ void namcos22s_state::namcos22s_mix_text_layer(screen_device &screen, bitmap_rgb
 	rgbaint_t rgb;
 
 	// prepare alpha
-	const u8 alpha_check12 = nthbyte(m_mixer, 0x12);
-	const u8 alpha_check13 = nthbyte(m_mixer, 0x13);
-	const u8 alpha_mask    = nthbyte(m_mixer, 0x14) & 0xf;
-	const u8 alpha_factor  = nthbyte(m_mixer, 0x15);
+	const u8 alpha_check12 = nthbyte(m_mixraw, 0x12);
+	const u8 alpha_check13 = nthbyte(m_mixraw, 0x13);
+	const u8 alpha_mask    = nthbyte(m_mixraw, 0x14) & 0xf;
+	const u8 alpha_factor  = nthbyte(m_mixraw, 0x15);
 
 	// prepare spot
 	const bool spot_enabled = BIT(m_spotram_enable, 0) && (m_chipselect & 0xc000);
-	const int spot_factor = (m_spot_factor < 0x100) ? 0 : m_spot_factor & 0xff;
-	const int spot_palbase = m_text_palbase >> 8 & 3; // src[x] >> 8 & 3
+	const int spot_factor = (m_mixer.spot_factor < 0x100) ? 0 : m_mixer.spot_factor & 0xff;
+	const int spot_palbase = m_mixer.text_palbase >> 8 & 3; // src[x] >> 8 & 3
 
 	// prepare fader
-	const bool fade_enabled = BIT(m_mixer_flags, 1) && m_screen_fade_factor;
-	const int fade_factor = 0xff - m_screen_fade_factor;
-	rgbaint_t fade_color(0, m_screen_fade_r, m_screen_fade_g, m_screen_fade_b);
+	const bool fade_enabled = BIT(m_mixer.flags, 1) && m_mixer.screen_fade_factor;
+	const int fade_factor = 0xff - m_mixer.screen_fade_factor;
 
 	// mix textlayer with poly/sprites
 	for (int y = cliprect.top(); y <= cliprect.bottom(); y++)
@@ -2072,7 +2072,7 @@ void namcos22s_state::namcos22s_mix_text_layer(screen_device &screen, bitmap_rgb
 					// remap pen
 					pen = m_spotram[(src[x] << 2 | spot_palbase) & 0x3ff];
 					if (pen < 0x80)
-						rgb.set(pens[pen | m_text_palbase]);
+						rgb.set(pens[pen | m_mixer.text_palbase]);
 					else if (prival != 6)
 						continue;
 				}
@@ -2093,7 +2093,7 @@ void namcos22s_state::namcos22s_mix_text_layer(screen_device &screen, bitmap_rgb
 				{
 					// apply fade
 					if (fade_enabled)
-						rgb.blend(fade_color, fade_factor);
+						rgb.blend(m_mixer.screen_fade_color, fade_factor);
 
 					// apply alpha
 					if (alpha_factor && ((pen & 0xf) == alpha_mask || (pen >= alpha_check12 && pen <= alpha_check13)))
@@ -2114,21 +2114,14 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 	const u8 *blut = &m_gamma_proms[0x200];
 
 	// prepare fader and shadow factor
-	const bool fade_enabled = (m_screen_fade_r != 0x100 || m_screen_fade_g != 0x100 || m_screen_fade_b != 0x100);
-	const u32 fade_r_add = (m_screen_fade_r > 0x100) ? (1 << 16) : 0;
-	const u32 fade_g_add = (m_screen_fade_g > 0x100) ? (1 << 8) : 0;
-	const u32 fade_b_add = (m_screen_fade_b > 0x100) ? 1 : 0;
+	const bool fade_enabled = (m_mixer.screen_fade_color.get_r32() != 0x100 || m_mixer.screen_fade_color.get_g32() != 0x100 || m_mixer.screen_fade_color.get_b32() != 0x100);
+	const u32 fade_r_add = (m_mixer.screen_fade_color.get_r32() > 0x100) ? (1 << 16) : 0;
+	const u32 fade_g_add = (m_mixer.screen_fade_color.get_g32() > 0x100) ? (1 << 8) : 0;
+	const u32 fade_b_add = (m_mixer.screen_fade_color.get_b32() > 0x100) ? 1 : 0;
 	const bool fade_white = fade_r_add || fade_g_add || fade_b_add;
 
-	const bool shadow_enabled = BIT(m_mixer_flags, 8); // ? (ridgerac is the only game not using shadow)
-
-	rgbaint_t fade_color(0, m_screen_fade_r, m_screen_fade_g, m_screen_fade_b);
-	rgbaint_t rgb_mix[3] = {
-		rgbaint_t(0, nthbyte(m_mixer, 0x08), nthbyte(m_mixer, 0x09), nthbyte(m_mixer, 0x0a)), // pen c
-		rgbaint_t(0, nthbyte(m_mixer, 0x0b), nthbyte(m_mixer, 0x0c), nthbyte(m_mixer, 0x0d)), // pen d
-		rgbaint_t(0, nthbyte(m_mixer, 0x0e), nthbyte(m_mixer, 0x0f), nthbyte(m_mixer, 0x10))  // pen e
-	};
-
+	const bool shadow_enabled = BIT(m_mixer.flags, 8); // ? (ridgerac is the only game not using shadow)
+	
 	// mix textlayer with polys + do final mix
 	for (int y = cliprect.top(); y <= cliprect.bottom(); y++)
 	{
@@ -2147,7 +2140,7 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 				if (shadow_enabled && pen >= 0xfc && pen <= 0xfe)
 				{
 					rgbaint_t rgb(pixel);
-					rgb.scale_and_clamp(rgb_mix[pen - 0xfc]);
+					rgb.scale_and_clamp(m_mixer.rgb_mix[pen - 0xfc]);
 					pixel = rgb.to_rgba();
 				}
 				else
@@ -2164,8 +2157,9 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 					if (!(pixel & 0x00ff00)) pixel += fade_g_add;
 					if (!(pixel & 0x0000ff)) pixel += fade_b_add;
 				}
+
 				rgbaint_t rgb(pixel);
-				rgb.scale_and_clamp(fade_color);
+				rgb.scale_and_clamp(m_mixer.screen_fade_color);
 				pixel = rgb.to_rgba();
 			}
 
@@ -2210,7 +2204,7 @@ void namcos22_state::apply_text_scroll()
 void namcos22_state::draw_text_layer(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
 	apply_text_scroll();
-	m_text_tilemap->set_palette_offset(m_text_palbase);
+	m_text_tilemap->set_palette_offset(m_mixer.text_palbase);
 
 	m_text_tilemap->draw(screen, *m_mix_bitmap, cliprect, 0, 2, 3);
 	namcos22_mix_text_layer(screen, bitmap, cliprect);
@@ -2219,7 +2213,7 @@ void namcos22_state::draw_text_layer(screen_device &screen, bitmap_rgb32 &bitmap
 void namcos22s_state::draw_text_layer(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
 	apply_text_scroll();
-	m_text_tilemap->set_palette_offset(m_text_palbase);
+	m_text_tilemap->set_palette_offset(m_mixer.text_palbase);
 
 	m_text_tilemap->draw(screen, *m_mix_bitmap, cliprect, 0, 4, 4);
 	namcos22s_mix_text_layer(screen, bitmap, cliprect, 4);
@@ -2384,7 +2378,7 @@ void namcos22s_state::recalc_czram()
 }
 
 
-void namcos22_state::update_mixer()
+void namcos22s_state::ss22_mixer_w(offs_t offset, u32 data, u32 mem_mask)
 {
 	m_poly->wait("update_mixer");
 #if 0 // show reg contents
@@ -2408,106 +2402,181 @@ void namcos22_state::update_mixer()
 	popmessage("%s",msg1);
 #endif
 
-	if (m_is_ss22)
+	/*
+		   0 1 2 3  4 5 6 7  8 9 a b  c d e f 10       14       18       1c
+	00824000: ffffff00 00000000 0000007f 00ff006f fe00eded 0f700000 0000037f 00010007 // alpine surfer
+	00824000: ffffff00 00000000 0000007f 00ff0000 1000ff00 0f000000 00ff007f 00010007 // time crisis
+	00824000: ffffff00 00000000 1830407f 00800000 0000007f 0f000000 0000037f 00010007 // trans sprite
+	00824000: ffffff00 00000000 3040307f 00000000 0080007f 0f000000 0000037f 00010007 // trans poly
+	00824000: ffffff00 00000000 1800187f 00800000 0080007f 0f000000 0000037f 00010007 // trans poly(2)
+	00824000: ffffff00 00000000 1800187f 00000000 0000007f 0f800000 0000037f 00010007 // trans text
+
+	    00,01,02        polygon fade rgb
+	    03
+	    04
+	    05,06,07        world fog rgb
+	    08,09,0a        background color
+	    0b
+	    0c
+	    0d,0e           spot factor
+	    0f              polygon alpha color mask
+	    10              polygon alpha pen mask
+	    11              global polygon alpha factor
+	    12,13           textlayer alpha pen comparison
+	    14              textlayer alpha pen mask?
+	    15              textlayer alpha factor
+	    16,17,18        global fade rgb
+	    19              global fade factor
+	    1a              fade target flags
+	    1b              textlayer palette base
+	    1c
+	    1d
+	    1e
+	    1f              layer enable
+	*/
+
+	COMBINE_DATA(&m_mixraw[offset]);
+
+	switch (offset)
 	{
-		/*
-		           0 1 2 3  4 5 6 7  8 9 a b  c d e f 10       14       18       1c
-		00824000: ffffff00 00000000 0000007f 00ff006f fe00eded 0f700000 0000037f 00010007 // alpine surfer
-		00824000: ffffff00 00000000 0000007f 00ff0000 1000ff00 0f000000 00ff007f 00010007 // time crisis
-		00824000: ffffff00 00000000 1830407f 00800000 0000007f 0f000000 0000037f 00010007 // trans sprite
-		00824000: ffffff00 00000000 3040307f 00000000 0080007f 0f000000 0000037f 00010007 // trans poly
-		00824000: ffffff00 00000000 1800187f 00800000 0080007f 0f000000 0000037f 00010007 // trans poly(2)
-		00824000: ffffff00 00000000 1800187f 00000000 0000007f 0f800000 0000037f 00010007 // trans text
+		case 0x00000000:
+			m_mixer.poly_fade_color = rgbaint_t(0, nthbyte(m_mixraw, 0x00), nthbyte(m_mixraw, 0x01), nthbyte(m_mixraw, 0x02));
+		break;
 
-		    00,01,02        polygon fade rgb
-		    03
-		    04
-		    05,06,07        world fog rgb
-		    08,09,0a        background color
-		    0b
-		    0c
-		    0d,0e           spot factor
-		    0f              polygon alpha color mask
-		    10              polygon alpha pen mask
-		    11              global polygon alpha factor
-		    12,13           textlayer alpha pen comparison
-		    14              textlayer alpha pen mask?
-		    15              textlayer alpha factor
-		    16,17,18        global fade rgb
-		    19              global fade factor
-		    1a              fade target flags
-		    1b              textlayer palette base
-		    1c
-		    1d
-		    1e
-		    1f              layer enable
-		*/
-		m_poly_fade_r        = nthbyte(m_mixer, 0x00);
-		m_poly_fade_g        = nthbyte(m_mixer, 0x01);
-		m_poly_fade_b        = nthbyte(m_mixer, 0x02);
-		m_fog_r              = nthbyte(m_mixer, 0x05);
-		m_fog_g              = nthbyte(m_mixer, 0x06);
-		m_fog_b              = nthbyte(m_mixer, 0x07);
-		m_spot_factor        = nthbyte(m_mixer, 0x0e) << 8 | nthbyte(m_mixer, 0x0d);
-		m_poly_alpha_color   = nthbyte(m_mixer, 0x0f);
-		m_poly_alpha_pen     = nthbyte(m_mixer, 0x10);
-		m_poly_alpha_factor  = nthbyte(m_mixer, 0x11);
-		m_screen_fade_r      = nthbyte(m_mixer, 0x16);
-		m_screen_fade_g      = nthbyte(m_mixer, 0x17);
-		m_screen_fade_b      = nthbyte(m_mixer, 0x18);
-		m_screen_fade_factor = nthbyte(m_mixer, 0x19);
-		m_mixer_flags        = nthbyte(m_mixer, 0x1a);
-		m_text_palbase       = nthbyte(m_mixer, 0x1b) << 8 & 0x7f00;
+		case 0x00000004/4:
+			m_mixer.fog_color = rgbaint_t(0, nthbyte(m_mixraw, 0x05), nthbyte(m_mixraw, 0x06), nthbyte(m_mixraw, 0x07));
+		break;
 
-		m_poly_fade_enabled = (m_mixer[0] & 0xffffff00) != 0xffffff00;
+
+		case 0x0000000c/4:
+			m_mixer.spot_factor      = nthbyte(m_mixraw, 0x0e) << 8 | nthbyte(m_mixraw, 0x0d);
+			m_mixer.poly_alpha_color = nthbyte(m_mixraw, 0x0f);
+		break;
+
+		case 0x00000010/4:
+			m_mixer.poly_alpha_pen     = nthbyte(m_mixraw, 0x10);
+			m_mixer.poly_alpha_factor  = nthbyte(m_mixraw, 0x11);
+		break;
+
+		case 0x00000014/4:
+			m_mixer.screen_fade_color.set_r(nthbyte(m_mixraw, 0x16));
+			m_mixer.screen_fade_color.set_g(nthbyte(m_mixraw, 0x17));
+		break;
+
+		case 0x00000018/4:
+			m_mixer.screen_fade_color.set_b(nthbyte(m_mixraw, 0x18));
+			m_mixer.screen_fade_factor = nthbyte(m_mixraw, 0x19);
+			m_mixer.flags              = nthbyte(m_mixraw, 0x1a);
+			m_mixer.text_palbase       = nthbyte(m_mixraw, 0x1b) << 8 & 0x7f00;
+		break;
+
+		case 0x0000001c/4:
+			m_mixer.layer = nthbyte(m_mixraw, 0x1f);
+		break;
 	}
-	else
+
+	m_mixer.poly_fade_enabled = (m_mixraw[0] & 0xffffff00) != 0xffffff00;
+}
+
+void namcos22_state::mixer_w(offs_t offset, u32 data, u32 mem_mask)
+{
+	/*
+	90020000: 4f030000 7f00007f 4d4d4d42 0c00c0c0
+	90020010: c0010001 00010000 00000000 00000000
+	90020080: 00010101 01010102 00000000 00000000
+	900200c0: 00000000 00000000 00000000 03000000
+	90020100: fff35000 00000000 00000000 00000000
+	90020180: ff713700 00000000 00000000 00000000
+	90020200: ff100000 00000000 00000000 00000000
+
+	    00,01           display flags
+	    02
+	    03
+	    04              bgcolor palette base?
+	    05
+	    06
+	    07              textlayer palette base?
+	    08,09,0a        textlayer pen c shadow rgb
+	    0b,0c,0d        textlayer pen d shadow rgb
+	    0e,0f,10        textlayer pen e shadow rgb
+	    11,12           global fade factor red
+	    13,14           global fade factor green
+	    15,16           global fade factor blue
+	    80-87           fog color mask?
+	    100,180,200     fog rgb 0
+	    101,181,201     fog rgb 1
+	    102,182,202     fog rgb 2
+	    103,183,203     fog rgb 3
+	*/
+
+	COMBINE_DATA(&m_mixraw[offset]);
+
+	switch (offset)
 	{
-		/*
-		90020000: 4f030000 7f00007f 4d4d4d42 0c00c0c0
-		90020010: c0010001 00010000 00000000 00000000
-		90020080: 00010101 01010102 00000000 00000000
-		900200c0: 00000000 00000000 00000000 03000000
-		90020100: fff35000 00000000 00000000 00000000
-		90020180: ff713700 00000000 00000000 00000000
-		90020200: ff100000 00000000 00000000 00000000
+		case 0x00000000:
+			m_mixer.flags = nthbyte(m_mixraw, 0x00) << 8 | nthbyte(m_mixraw, 0x01);
+		break;
 
-		    00,01           display flags
-		    02
-		    03
-		    04              bgcolor palette base?
-		    05
-		    06
-		    07              textlayer palette base?
-		    08,09,0a        textlayer pen c shadow rgb
-		    0b,0c,0d        textlayer pen d shadow rgb
-		    0e,0f,10        textlayer pen e shadow rgb
-		    11,12           global fade factor red
-		    13,14           global fade factor green
-		    15,16           global fade factor blue
-		    80-87           fog color mask?
-		    100,180,200     fog rgb 0
-		    101,181,201     fog rgb 1
-		    102,182,202     fog rgb 2
-		    103,183,203     fog rgb 3
-		*/
-		m_mixer_flags         = nthbyte(m_mixer, 0x00) << 8 | nthbyte(m_mixer, 0x01);
-		m_bg_palbase          = nthbyte(m_mixer, 0x04) << 8 & 0x7f00;
-		m_text_palbase        = nthbyte(m_mixer, 0x07) << 8 & 0x7f00;
-		m_screen_fade_r       = nthbyte(m_mixer, 0x11) << 8 | nthbyte(m_mixer, 0x12); // 0x0100 = 1.0
-		m_screen_fade_g       = nthbyte(m_mixer, 0x13) << 8 | nthbyte(m_mixer, 0x14);
-		m_screen_fade_b       = nthbyte(m_mixer, 0x15) << 8 | nthbyte(m_mixer, 0x16);
+		case 0x00000004/4:
+			m_mixer.bg_palbase  = nthbyte(m_mixraw, 0x04) << 8 & 0x7f00;
+			m_mixer.text_palbase = nthbyte(m_mixraw, 0x07) << 8 & 0x7f00;
+		break;
 
-		// raverace is the only game using multiple fog colors (city smog, cars under tunnels, brake disc in attract mode)
-		m_fog_colormask       = m_mixer[0x84/4];
+		case 0x00000008/4:
+			//pen c
+			m_mixer.rgb_mix[0] = rgbaint_t(0, nthbyte(m_mixraw, 0x08), nthbyte(m_mixraw, 0x09), nthbyte(m_mixraw, 0x0a)),
 
-		// fog color per cz type
-		for (int i = 0; i < 4; i++)
-		{
-			m_fog_r_per_cztype[i] = nthbyte(m_mixer, 0x0100+i);
-			m_fog_g_per_cztype[i] = nthbyte(m_mixer, 0x0180+i);
-			m_fog_b_per_cztype[i] = nthbyte(m_mixer, 0x0200+i);
-		}
+			//pen d
+			m_mixer.rgb_mix[1].set_r(nthbyte(m_mixraw, 0x0b));
+		break;
+
+		case 0x0000000c/4:
+			m_mixer.rgb_mix[1].set_g(nthbyte(m_mixraw, 0x0b));
+			m_mixer.rgb_mix[1].set_b(nthbyte(m_mixraw, 0x0d));
+
+			//pen e
+			m_mixer.rgb_mix[2].set_r(nthbyte(m_mixraw, 0x0e));
+			m_mixer.rgb_mix[2].set_g(nthbyte(m_mixraw, 0x0f));
+		break;
+
+		case 0x00000010/4:
+			m_mixer.rgb_mix[2].set_b(nthbyte(m_mixraw, 0x10));
+
+			m_mixer.screen_fade_color.set_r(nthbyte(m_mixraw, 0x11) << 8 | nthbyte(m_mixraw, 0x12));
+			m_mixer.screen_fade_color.set_g(nthbyte(m_mixraw, 0x13) << 8 | nthbyte(m_mixraw, 0x14));
+		break;
+
+		case 0x00000014/4:
+			m_mixer.screen_fade_color.set_g(nthbyte(m_mixraw, 0x13) << 8 | nthbyte(m_mixraw, 0x14));
+
+			m_mixer.screen_fade_color.set_b(nthbyte(m_mixraw, 0x15) << 8 | nthbyte(m_mixraw, 0x16));
+		break;
+
+		case 0x00000084/4:
+			// raverace is the only game using multiple fog colors (city smog, cars under tunnels, brake disc in attract mode)
+			m_mixer.fog_colormask = m_mixraw[0x84/4];
+		break;
+
+		case 0x00000100/4:
+			for (int i = 0; i < 4; i++)
+			{
+				m_mixer.fog_per_cztype[i].set_r(nthbyte(m_mixraw, 0x0100+i));
+			}
+		break;
+
+		case 0x00000180/4:
+			for (int i = 0; i < 4; i++)
+			{
+				m_mixer.fog_per_cztype[i].set_g(nthbyte(m_mixraw, 0x0180+i));
+			}
+		break;
+
+		case 0x00000200/4:
+			for (int i = 0; i < 4; i++)
+			{
+				m_mixer.fog_per_cztype[i].set_b(nthbyte(m_mixraw, 0x0200+i));
+			}
+		break;
 	}
 }
 
@@ -2518,32 +2587,29 @@ void namcos22_state::update_mixer()
 u32 namcos22s_state::screen_update_namcos22s(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
 	render_frame_active();
-	update_mixer();
 	update_palette();
 	recalc_czram();
 	screen.priority().fill(0, cliprect);
 
-	// background color
-	rgbaint_t bg_color(0, nthbyte(m_mixer, 0x08), nthbyte(m_mixer, 0x09), nthbyte(m_mixer, 0x0a));
-	if (BIT(m_mixer_flags, 0) && m_screen_fade_factor)
+	// background color is pen c
+	rgbaint_t bg_color = m_mixer.rgb_mix[0];
+	if (BIT(m_mixer.flags, 0) && m_mixer.screen_fade_factor)
 	{
-		rgbaint_t fade_color(0, m_screen_fade_r, m_screen_fade_g, m_screen_fade_b);
-		bg_color.blend(fade_color, 0xff - m_screen_fade_factor);
+		bg_color.blend(m_mixer.screen_fade_color, 0xff - m_mixer.screen_fade_factor);
 	}
 	bitmap.fill(bg_color.to_rgba(), cliprect);
 
 	// layers
-	const u8 layer = nthbyte(m_mixer, 0x1f);
-	if (BIT(layer, 2)) draw_text_layer(screen, bitmap, cliprect);
-	if (BIT(layer, 1)) draw_sprites();
-	if (BIT(layer, 0)) draw_polygons();
+	if (BIT(m_mixer.layer, 2)) draw_text_layer(screen, bitmap, cliprect);
+	if (BIT(m_mixer.layer, 1)) draw_sprites();
+	if (BIT(m_mixer.layer, 0)) draw_polygons();
 	m_poly->render_scene(screen, bitmap);
-	if (BIT(layer, 2)) namcos22s_mix_text_layer(screen, bitmap, cliprect, 6);
+	if (BIT(m_mixer.layer, 2)) namcos22s_mix_text_layer(screen, bitmap, cliprect, 6);
 
 	// apply gamma
-	const u8 *rlut = (const u8 *)&m_mixer[0x100/4];
-	const u8 *glut = (const u8 *)&m_mixer[0x200/4];
-	const u8 *blut = (const u8 *)&m_mixer[0x300/4];
+	const u8 *rlut = (const u8 *)&m_mixraw[0x100/4];
+	const u8 *glut = (const u8 *)&m_mixraw[0x200/4];
+	const u8 *blut = (const u8 *)&m_mixraw[0x300/4];
 	for (int y = cliprect.top(); y <= cliprect.bottom(); y++)
 	{
 		u32 *const dest = &bitmap.pix(y);
@@ -2563,12 +2629,11 @@ u32 namcos22s_state::screen_update_namcos22s(screen_device &screen, bitmap_rgb32
 u32 namcos22_state::screen_update_namcos22(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
 	render_frame_active();
-	update_mixer();
 	update_palette();
 	screen.priority().fill(0, cliprect);
 
 	// background color
-	const int bg_color = m_bg_palbase | 0xff;
+	const int bg_color = m_mixer.bg_palbase | 0xff;
 	bitmap.fill(m_palette->pen(bg_color), cliprect);
 
 	// layers
@@ -2592,13 +2657,6 @@ void namcos22_state::init_tables()
 
 	matrix3d_identity(m_viewmatrix);
 	memset(m_polygonram, 0xcc, m_polygonram.bytes());
-
-	if (!m_is_ss22)
-	{
-		save_item(NAME(m_fog_r_per_cztype));
-		save_item(NAME(m_fog_g_per_cztype));
-		save_item(NAME(m_fog_b_per_cztype));
-	}
 
 	// init pointrom
 	m_pointrom_size = memregion("pointrom")->bytes()/3;

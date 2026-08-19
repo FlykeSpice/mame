@@ -1822,7 +1822,7 @@ void namcos22_state::namcos22_am(address_map &map)
 	 * Mounted position: VIDEO 7D (C305)
 	 * Notes: Boot time check: 0x90020100 - 0x9002027f
 	 */
-	map(0x90020000, 0x90027fff).ram().share(m_mixer);
+	map(0x90020000, 0x90027fff).ram().w(FUNC(namcos22_state::mixer_w)).share(m_mixraw);
 
 	/**
 	 * Mounted position: VIDEO 6B, 7B, 8B (near C305)
@@ -1874,7 +1874,7 @@ void namcos22s_state::namcos22s_am(address_map &map)
 	map(0x810000, 0x81000f).rw(FUNC(namcos22s_state::namcos22s_czattr_r), FUNC(namcos22s_state::namcos22s_czattr_w));
 	map(0x810200, 0x8103ff).rw(FUNC(namcos22s_state::namcos22s_czram_r), FUNC(namcos22s_state::namcos22s_czram_w));
 	map(0x820000, 0x8202ff).nopw(); // leftover of old (non-super) video mixer device
-	map(0x824000, 0x8243ff).ram().share(m_mixer);
+	map(0x824000, 0x8243ff).ram().w(FUNC(namcos22s_state::ss22_mixer_w)).share(m_mixraw);
 	map(0x828000, 0x83ffff).ram().w(FUNC(namcos22s_state::namcos22_paletteram_w)).share(m_paletteram);
 	map(0x860000, 0x860007).rw(FUNC(namcos22s_state::spotram_r), FUNC(namcos22s_state::spotram_w));
 	map(0x880000, 0x89ffff).ram().w(FUNC(namcos22s_state::namcos22_cgram_w)).share(m_cgram);
@@ -3648,7 +3648,7 @@ void namcos22_state::machine_start()
 
 	// register for savestates, stuff that isn't done in video_start()
 	// note: namcos22_renderer class doesn't need saving, it is refreshed every frame
-	save_item(NAME(m_mixer_flags));
+	/*save_item(NAME(m_mixer_flags));
 	save_item(NAME(m_fog_r));
 	save_item(NAME(m_fog_g));
 	save_item(NAME(m_fog_b));
@@ -3663,7 +3663,7 @@ void namcos22_state::machine_start()
 	save_item(NAME(m_poly_fade_enabled));
 	save_item(NAME(m_poly_alpha_color));
 	save_item(NAME(m_poly_alpha_pen));
-	save_item(NAME(m_poly_alpha_factor));
+	save_item(NAME(m_poly_alpha_factor));*/
 
 	save_item(NAME(m_syscontrol));
 	save_item(NAME(m_dsp_irq_enabled));
@@ -3702,9 +3702,9 @@ void namcos22_state::machine_start()
 	save_item(NAME(m_rowscroll));
 	save_item(NAME(m_lastrow));
 	save_item(NAME(m_rs_frame));
-	save_item(NAME(m_spot_factor));
+/*	save_item(NAME(m_spot_factor));
 	save_item(NAME(m_text_palbase));
-	save_item(NAME(m_bg_palbase));
+	save_item(NAME(m_bg_palbase));*/
 	save_item(NAME(m_camera_zoom));
 	save_item(NAME(m_camera_vx));
 	save_item(NAME(m_camera_vy));
