@@ -2197,7 +2197,7 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 					pixel = pens[src[x]];
 			}
 
-skip_transparent:
+//skip_transparent:
 			// apply global fade
 			if (fade_enabled)
 			{
