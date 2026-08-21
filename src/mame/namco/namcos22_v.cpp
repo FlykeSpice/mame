@@ -2178,9 +2178,10 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 			{
 				const int src_y = (y - scroll_y) & TILEMAP_MASK;
 				const int scroll_x = m_rowscroll[(y + 4) & TILEMAP_MASK];
-				const u16 *src = pmap_base + src_y * pmap_pitch;
+				const int src_x = (x - scroll_x) & TILEMAP_MASK;
 
-				u8 pen = src[x];
+				const u16 *src = pmap_base + src_y * pmap_pitch;
+				u8 pen = src[src_x];
 
 				if (pen == 0xf) //transparent, ignore
 					goto skip_transparent;
