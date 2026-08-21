@@ -2184,7 +2184,7 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 				u8 pen = src[src_x];
 
 				if (pen == 0xf) //transparent, ignore
-					goto skip_transparent;
+					continue;
 
 				// apply shadow
 				if (shadow_enabled && pen >= 0xfc && pen <= 0xfe)
