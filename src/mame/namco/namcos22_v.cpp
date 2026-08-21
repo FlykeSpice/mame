@@ -2150,12 +2150,25 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 		rgbaint_t(0, nthbyte(m_mixer, 0x0e), nthbyte(m_mixer, 0x0f), nthbyte(m_mixer, 0x10))  // pen e
 	};
 
+	// Make sure the internal pixmap is up to date.
+	const bitmap_ind16 &pmap = m_text_tilemap->pixmap();
+
+	const u16 *const pmap_base = &pmap.pix(0);
+	const int pmap_pitch = pmap.rowpixels();
+
+	// The tilemap is 1024x1024.
+	constexpr int TILEMAP_SIZE = 0x400;
+	constexpr int TILEMAP_MASK = TILEMAP_SIZE - 1;
+
+	// Hardware vertical scroll.
+	const int scroll_y = m_tilemapattr[1] & TILEMAP_MASK;
+
 	// mix textlayer with polys + do final mix
 	for (int y = cliprect.top(); y <= cliprect.bottom(); y++)
 	{
-		u16 const *const src = &m_mix_bitmap->pix(y);
 		u32 *const dest = &bitmap.pix(y);
 		u8 const *const pri = &screen.priority().pix(y);
+
 		for (int x = cliprect.left(); x <= cliprect.right(); x++)
 		{
 			u32 pixel = dest[x];
@@ -2163,8 +2176,16 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 			// skip if transparent or under poly
 			if (pri[x] == 2)
 			{
-				// apply shadow
+				const int src_y = (y - scroll_y) & TILEMAP_MASK;
+				const int scroll_x = m_rowscroll[(y + 4) & TILEMAP_MASK];
+				const u16 *src = pmap_base + src_y * pmap_pitch;
+
 				u8 pen = src[x];
+
+				if (pen == 0xf) //transparent, ignore
+					goto skip_transparent;
+
+				// apply shadow
 				if (shadow_enabled && pen >= 0xfc && pen <= 0xfe)
 				{
 					rgbaint_t rgb(pixel);
@@ -2175,6 +2196,7 @@ void namcos22_state::namcos22_mix_text_layer(screen_device &screen, bitmap_rgb32
 					pixel = pens[src[x]];
 			}
 
+skip_transparent:
 			// apply global fade
 			if (fade_enabled)
 			{
@@ -2230,10 +2252,8 @@ void namcos22_state::apply_text_scroll()
 
 void namcos22_state::draw_text_layer(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
-	apply_text_scroll();
+	update_text_rowscroll();
 	m_text_tilemap->set_palette_offset(m_text_palbase);
-
-	m_text_tilemap->draw(screen, *m_mix_bitmap, cliprect, 0, 2, 3);
 	namcos22_mix_text_layer(screen, bitmap, cliprect);
 }
 
@@ -2585,7 +2605,7 @@ u32 namcos22_state::screen_update_namcos22(screen_device &screen, bitmap_rgb32 &
 	render_frame_active();
 	update_mixer();
 	update_palette();
-	screen.priority().fill(0, cliprect);
+	screen.priority().fill(2, cliprect);
 
 	// background color
 	const int bg_color = m_bg_palbase | 0xff;
