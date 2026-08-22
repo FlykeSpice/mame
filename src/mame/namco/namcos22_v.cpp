@@ -2455,7 +2455,11 @@ void namcos22s_state::ss22_mixer_w(offs_t offset, u32 data, u32 mem_mask)
 	    1f              layer enable
 	*/
 
+	const u32 prev = m_mixraw[offset];
 	COMBINE_DATA(&m_mixraw[offset]);
+
+	if (prev == m_mixraw[offset])
+		return;
 
 	switch (offset)
 	{
@@ -2529,7 +2533,11 @@ void namcos22_state::mixer_w(offs_t offset, u32 data, u32 mem_mask)
 	    103,183,203     fog rgb 3
 	*/
 
+	const u32 prev = m_mixraw[offset];
 	COMBINE_DATA(&m_mixraw[offset]);
+
+	if (prev == m_mixraw[offset])
+		return;
 
 	switch (offset)
 	{
