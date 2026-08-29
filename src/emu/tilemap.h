@@ -563,6 +563,7 @@ private:
 	template<class _BitmapClass> void draw_common(screen_device &screen, _BitmapClass &dest, const rectangle &cliprect, u32 flags, u8 priority, u8 priority_mask);
 	template<class _BitmapClass> void draw_roz_common(screen_device &screen, _BitmapClass &dest, const rectangle &cliprect, u32 startx, u32 starty, int incxx, int incxy, int incyx, int incyy, bool wraparound, u32 flags, u8 priority, u8 priority_mask);
 	template<class _BitmapClass> void draw_instance(screen_device &screen, _BitmapClass &dest, const blit_parameters &blit, int xpos, int ypos);
+	template<class _BitmapClass, bool UsesAlpha, bool OnlyPriority> void draw_actual_instance(screen_device &screen, _BitmapClass &dest, const blit_parameters &blit, int xpos, int ypos);
 	template<class _BitmapClass> void draw_roz_core(screen_device &screen, _BitmapClass &destbitmap, const blit_parameters &blit, u32 startx, u32 starty, int incxx, int incxy, int incyx, int incyy, bool wraparound);
 
 	// managers and devices

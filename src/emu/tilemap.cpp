@@ -1244,15 +1244,29 @@ void tilemap_t::draw_roz(screen_device &screen, bitmap_rgb32 &dest, const rectan
 		bool wraparound, u32 flags, u8 priority, u8 priority_mask)
 { draw_roz_common(screen, dest, cliprect, startx, starty, incxx, incxy, incyx, incyy, wraparound, flags, priority, priority_mask); }
 
+//-------------------------------------------------
+//  draw_instance - dispatches to the appropiate draw_actual_instance specialization depending on bitmap parameters
+//-------------------------------------------------
+
+template<class _BitmapClass>
+inline void tilemap_t::draw_instance(screen_device &screen, _BitmapClass &dest, const blit_parameters &blit, int xpos, int ypos)
+{
+	if (!dest.valid())
+		draw_actual_instance<_BitmapClass, false,  true>(screen, dest, blit, xpos, ypos);
+	else if (blit.alpha < 0xff)
+		draw_actual_instance<_BitmapClass,  true, false>(screen, dest, blit, xpos, ypos);
+	else
+		draw_actual_instance<_BitmapClass, false, false>(screen, dest, blit, xpos, ypos);
+}
 
 //-------------------------------------------------
-//  draw_instance - draw a single instance of the
+//  draw_actual_instance - draw a single instance of the
 //  tilemap to the internal pixmap at the given
 //  xpos,ypos
 //-------------------------------------------------
 
-template<class _BitmapClass>
-void tilemap_t::draw_instance(screen_device &screen, _BitmapClass &dest, const blit_parameters &blit, int xpos, int ypos)
+template<class _BitmapClass, bool UsesAlpha, bool OnlyPriority>
+void tilemap_t::draw_actual_instance(screen_device &screen, _BitmapClass &dest, const blit_parameters &blit, int xpos, int ypos)
 {
 	// clip destination coordinates to the tilemap
 	// note that x2/y2 are exclusive, not inclusive
@@ -1279,7 +1293,7 @@ void tilemap_t::draw_instance(screen_device &screen, _BitmapClass &dest, const b
 
 	typename _BitmapClass::pixel_t *dest_baseaddr = nullptr;
 	int dest_rowpixels = 0;
-	if (dest.valid())
+	if (!OnlyPriority)
 	{
 		dest_rowpixels = dest.rowpixels();
 		dest_baseaddr = &dest.pix(y1, xpos);
@@ -1361,14 +1375,17 @@ void tilemap_t::draw_instance(screen_device &screen, _BitmapClass &dest, const b
 				{
 					for (int cury = y; cury < nexty; cury++)
 					{
-						if (dest_baseaddr == nullptr)
+						if (OnlyPriority)
 							scanline_draw_opaque_null(x_end - x_start, pmap0, blit.tilemap_priority_code);
 						else if (sizeof(*dest0) == 2)
 							scanline_draw_opaque_ind16(reinterpret_cast<u16 *>(dest0), source0, x_end - x_start, pmap0, blit.tilemap_priority_code);
-						else if (sizeof(*dest0) == 4 && blit.alpha >= 0xff)
-							scanline_draw_opaque_rgb32(reinterpret_cast<u32 *>(dest0), source0, x_end - x_start, clut, pmap0, blit.tilemap_priority_code);
 						else if (sizeof(*dest0) == 4)
-							scanline_draw_opaque_rgb32_alpha(reinterpret_cast<u32 *>(dest0), source0, x_end - x_start, clut, pmap0, blit.tilemap_priority_code, blit.alpha);
+						{
+							if (!UsesAlpha)
+								scanline_draw_opaque_rgb32(reinterpret_cast<u32 *>(dest0), source0, x_end - x_start, clut, pmap0, blit.tilemap_priority_code);
+							else
+								scanline_draw_opaque_rgb32_alpha(reinterpret_cast<u32 *>(dest0), source0, x_end - x_start, clut, pmap0, blit.tilemap_priority_code, blit.alpha);
+						}
 
 						dest0 += dest_rowpixels;
 						source0 += m_pixmap.rowpixels();
@@ -1382,14 +1399,17 @@ void tilemap_t::draw_instance(screen_device &screen, _BitmapClass &dest, const b
 					const u8 *mask0 = mask_baseaddr + x_start;
 					for (int cury = y; cury < nexty; cury++)
 					{
-						if (dest_baseaddr == nullptr)
+						if (OnlyPriority)
 							scanline_draw_masked_null(mask0, blit.mask, blit.value, x_end - x_start, pmap0, blit.tilemap_priority_code);
 						else if (sizeof(*dest0) == 2)
 							scanline_draw_masked_ind16(reinterpret_cast<u16 *>(dest0), source0, mask0, blit.mask, blit.value, x_end - x_start, pmap0, blit.tilemap_priority_code);
-						else if (sizeof(*dest0) == 4 && blit.alpha >= 0xff)
-							scanline_draw_masked_rgb32(reinterpret_cast<u32 *>(dest0), source0, mask0, blit.mask, blit.value, x_end - x_start, clut, pmap0, blit.tilemap_priority_code);
 						else if (sizeof(*dest0) == 4)
-							scanline_draw_masked_rgb32_alpha(reinterpret_cast<u32 *>(dest0), source0, mask0, blit.mask, blit.value, x_end - x_start, clut, pmap0, blit.tilemap_priority_code, blit.alpha);
+						{
+							if (!UsesAlpha)
+								scanline_draw_masked_rgb32(reinterpret_cast<u32 *>(dest0), source0, mask0, blit.mask, blit.value, x_end - x_start, clut, pmap0, blit.tilemap_priority_code);
+							else
+								scanline_draw_masked_rgb32_alpha(reinterpret_cast<u32 *>(dest0), source0, mask0, blit.mask, blit.value, x_end - x_start, clut, pmap0, blit.tilemap_priority_code, blit.alpha);
+						}
 
 						dest0 += dest_rowpixels;
 						source0 += m_pixmap.rowpixels();
