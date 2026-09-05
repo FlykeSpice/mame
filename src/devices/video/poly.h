@@ -1139,24 +1139,42 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 	// walk forward to build up the forward edge list
 	struct poly_edge
 	{
-		poly_edge *next;                       // next edge in sequence
-		int index;                             // index of this edge
+		poly_edge *prev;		       // prev edge in sequence
+		poly_edge *next;		       // next edge in sequence
 		vertex_t const *v1;                    // pointer to first vertex
 		vertex_t const *v2;                    // pointer to second vertex
 		BaseType dxdy;                         // dx/dy along the edge
-		std::array<BaseType, MaxParams> dpdy;  // per-parameter dp/dy values
+		std::array<BaseType, ParamCount> dpdy; // per-parameter dp/dy values
 	};
-	poly_edge fedgelist[NumVerts - 1];
-	poly_edge *edgeptr = &fedgelist[0];
-	for (int curv = minv; curv != maxv; curv = (curv == NumVerts - 1) ? 0 : (curv + 1))
+	poly_edge edgelist[NumVerts];
+	poly_edge *edgeptr = edgelist;
+	poly_edge *ledge = nullptr, *redge = nullptr;
+	for (int curv = 0; curv < NumVerts; curv++)
 	{
 		// set the two vertices
 		edgeptr->v1 = &v[curv];
-		edgeptr->v2 = &v[(curv == NumVerts - 1) ? 0 : (curv + 1)];
+		edgeptr->v2 = &v[((curv + 1) == NumVerts) ? 0 : (curv + 1)];
+		edgeptr->next = edgeptr + 1;
+		edgeptr->prev = edgeptr - 1;
 
 		// if horizontal, skip altogether
 		if (edgeptr->v1->y == edgeptr->v2->y)
+		{
+			if (curv == minv)
+				++minv;
+
 			continue;
+		}
+
+		if (curv == minv)
+		{
+			redge = edgeptr;
+			if (edgeptr != edgelist) ledge = edgeptr->prev;
+		}
+
+		// assure v1 is always the top one
+		if (edgeptr->v1->y > edgeptr->v2->y)
+			std::swap(edgeptr->v1, edgeptr->v2);
 
 		// need dx/dy always, and parameter deltas as necessary
 		BaseType ooy = BaseType(1.0) / (edgeptr->v2->y - edgeptr->v1->y);
@@ -1165,43 +1183,14 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 			edgeptr->dpdy[paramnum] = (edgeptr->v2->p[paramnum] - edgeptr->v1->p[paramnum]) * ooy;
 		++edgeptr;
 	}
+	assert(redge != nullptr); //invalid geometry (the vertices are colinear)?
 
-	// walk backward to build up the backward edge list
-	poly_edge bedgelist[NumVerts - 1];
-	edgeptr = &bedgelist[0];
-	for (int curv = minv; curv != maxv; curv = (curv == 0) ? (NumVerts - 1) : (curv - 1))
-	{
-		// set the two vertices
-		edgeptr->v1 = &v[curv];
-		edgeptr->v2 = &v[(curv == 0) ? (NumVerts - 1) : (curv - 1)];
+	//Make the first and last edge from the list wrap around
+	edgelist[0].prev = --edgeptr;
+	edgeptr->next = &edgelist[0];
 
-		// if horizontal, skip altogether
-		if (edgeptr->v1->y == edgeptr->v2->y)
-			continue;
-
-		// need dx/dy always, and parameter deltas as necessary
-		BaseType ooy = BaseType(1.0) / (edgeptr->v2->y - edgeptr->v1->y);
-		edgeptr->dxdy = (edgeptr->v2->x - edgeptr->v1->x) * ooy;
-		for (int paramnum = 0; paramnum < ParamCount; paramnum++)
-			edgeptr->dpdy[paramnum] = (edgeptr->v2->p[paramnum] - edgeptr->v1->p[paramnum]) * ooy;
-		++edgeptr;
-	}
-
-	// determine which list is left/right:
-	// if the first vertex is shared, compare the slopes
-	// if the first vertex is not shared, compare the X coordinates
-	poly_edge const *ledge, *redge;
-	if ((fedgelist[0].v1 == bedgelist[0].v1 && fedgelist[0].dxdy < bedgelist[0].dxdy) ||
-		(fedgelist[0].v1 != bedgelist[0].v1 && fedgelist[0].v1->x < bedgelist[0].v1->x))
-	{
-		ledge = fedgelist;
-		redge = bedgelist;
-	}
-	else
-	{
-		ledge = bedgelist;
-		redge = fedgelist;
-	}
+	if (ledge == nullptr)
+		ledge = edgeptr;
 
 	// compute the X extents for each scanline
 	int32_t pixels = 0;
@@ -1229,19 +1218,23 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 			// compute the ending X based on which part of the triangle we're in
 			BaseType fully = BaseType(curscan + extnum) + BaseType(0.5);
 			while (fully > ledge->v2->y && fully < v[maxv].y)
-				++ledge;
+				ledge = ledge->prev;
 			while (fully > redge->v2->y && fully < v[maxv].y)
-				++redge;
+				redge = redge->next;
 			BaseType startx = ledge->v1->x + (fully - ledge->v1->y) * ledge->dxdy;
 			BaseType stopx = redge->v1->x + (fully - redge->v1->y) * redge->dxdy;
+
+			poly_edge *old_ledge = ledge, *old_redge = redge;
+			// force start < stop
+			if (startx > stopx)
+			{
+				std::swap(startx, stopx);
+				std::swap(ledge, redge);
+			}
 
 			// clamp to full pixels
 			int32_t istartx = round_coordinate(startx);
 			int32_t istopx = round_coordinate(stopx);
-
-			// force start < stop
-			if (istartx > istopx)
-				std::swap(istartx, istopx);
 
 			// apply left/right clipping BEFORE calculating parameter start
 			if (!(Flags & POLY_FLAG_NO_CLIPPING))
@@ -1271,6 +1264,8 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 					extent.param[paramnum].dpdx = dpdx;
 				}
 			}
+			ledge = old_ledge;
+			redge = old_redge;
 
 			// set the extent and update the total pixel count
 			if (istartx >= istopx)
