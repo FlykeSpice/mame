@@ -1139,8 +1139,6 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 	// walk forward to build up the forward edge list
 	struct poly_edge
 	{
-		poly_edge *prev;		       // prev edge in sequence
-		poly_edge *next;		       // next edge in sequence
 		vertex_t const *v1;                    // pointer to first vertex
 		vertex_t const *v2;                    // pointer to second vertex
 		BaseType dxdy;                         // dx/dy along the edge
@@ -1154,8 +1152,6 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 		// set the two vertices
 		edgeptr->v1 = &v[curv];
 		edgeptr->v2 = &v[((curv + 1) == NumVerts) ? 0 : (curv + 1)];
-		edgeptr->next = edgeptr + 1;
-		edgeptr->prev = edgeptr - 1;
 
 		// if horizontal, skip altogether
 		if (edgeptr->v1->y == edgeptr->v2->y)
@@ -1169,7 +1165,7 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 		if (curv == minv)
 		{
 			redge = edgeptr;
-			if (edgeptr != edgelist) ledge = edgeptr->prev;
+			if (edgeptr != edgelist) ledge = redge - 1;
 		}
 
 		// assure v1 is always the top one
@@ -1183,11 +1179,8 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 			edgeptr->dpdy[paramnum] = (edgeptr->v2->p[paramnum] - edgeptr->v1->p[paramnum]) * ooy;
 		++edgeptr;
 	}
+	--edgeptr;
 	assert(redge != nullptr); //invalid geometry (the vertices are colinear)?
-
-	//Make the first and last edge from the list wrap around
-	edgelist[0].prev = --edgeptr;
-	edgeptr->next = &edgelist[0];
 
 	if (ledge == nullptr)
 		ledge = edgeptr;
@@ -1218,18 +1211,29 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 			// compute the ending X based on which part of the triangle we're in
 			BaseType fully = BaseType(curscan + extnum) + BaseType(0.5);
 			while (fully > ledge->v2->y && fully < v[maxv].y)
-				ledge = ledge->prev;
+			{
+				if (ledge == edgelist)
+					ledge = edgeptr;
+				else
+					--ledge;
+			}
 			while (fully > redge->v2->y && fully < v[maxv].y)
-				redge = redge->next;
-			BaseType startx = ledge->v1->x + (fully - ledge->v1->y) * ledge->dxdy;
-			BaseType stopx = redge->v1->x + (fully - redge->v1->y) * redge->dxdy;
+			{
+				if (redge == edgeptr)
+					redge = edgelist;
+				else
+					++redge;
+			}
 
-			poly_edge *old_ledge = ledge, *old_redge = redge;
+			BaseType startx = ledge->v1->x + (fully - ledge->v1->y) * ledge->dxdy;
+			BaseType stopx  = redge->v1->x + (fully - redge->v1->y) * redge->dxdy;
+
+			poly_edge *left = ledge, *right = redge;
 			// force start < stop
 			if (startx > stopx)
 			{
 				std::swap(startx, stopx);
-				std::swap(ledge, redge);
+				std::swap(left, right);
 			}
 
 			// clamp to full pixels
@@ -1248,15 +1252,15 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 
 			if (ParamCount > 0)
 			{
-				BaseType ldy = fully - ledge->v1->y;
-				BaseType rdy = fully - redge->v1->y;
+				BaseType ldy = fully - left->v1->y;
+				BaseType rdy = fully - right->v1->y;
 				BaseType oox = BaseType(1.0) / (stopx - startx);
 
 				// iterate over parameters
 				for (int paramnum = 0; paramnum < ParamCount; paramnum++)
 				{
-					BaseType lparam = ledge->v1->p[paramnum] + ldy * ledge->dpdy[paramnum];
-					BaseType rparam = redge->v1->p[paramnum] + rdy * redge->dpdy[paramnum];
+					BaseType lparam = left->v1->p[paramnum] + ldy * left->dpdy[paramnum];
+					BaseType rparam = right->v1->p[paramnum] + rdy * right->dpdy[paramnum];
 
 					BaseType dpdx = (rparam - lparam) * oox;
 
@@ -1264,8 +1268,6 @@ uint32_t poly_manager<BaseType, ObjectType, MaxParams, Flags>::render_polygon(re
 					extent.param[paramnum].dpdx = dpdx;
 				}
 			}
-			ledge = old_ledge;
-			redge = old_redge;
 
 			// set the extent and update the total pixel count
 			if (istartx >= istopx)
