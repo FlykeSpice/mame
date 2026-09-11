@@ -40,7 +40,7 @@ jobs:
         unzip android-ndk-r27d-linux.zip
     - name: Clone Mame4droid-android repository
       run: |
-        git clone --branch main https://github.com/flykespice/MAME4droid-Current.git MAME4droid-Current
+        git clone --branch speedhack_support https://github.com/flykespice/MAME4droid-Current.git MAME4droid-Current
     - name: Apply the patches
       run: |
         for p in $(find MAME4droid-Current -name '*.patch'); do
@@ -55,7 +55,7 @@ jobs:
         LDOPTS: -flto=full -Wl,-z,max-page-size=16384
         OSD: mame4droid
         SUBTARGET: mytarget
-      run: make android-arm64 -j3
+      run: make android-arm64 -j4
     - uses: actions/upload-artifact@main
       with:
         name: mame4droid-jniLibs-${{ github.sha }}
