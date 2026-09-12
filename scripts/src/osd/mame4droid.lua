@@ -171,7 +171,8 @@ project ("osd_" .. _OPTIONS["osd"])
 		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/netplay/myosd_netplay.cpp",
 		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/netplay/netplay.cpp",
 		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/input.cpp",
-		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/myosdmain.cpp"
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/myosdmain.cpp",
+		MAME_DIR .. "MAME4droid-Current/src/osd/myosd/speedhacks.cpp",
 
 		--MAME_DIR .. "MAME4droid/src/osd/myosd/mame4droid-jni.cpp"
 	}
